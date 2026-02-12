@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; script-src 'self';">
+  <title>YTCD - YouTube Content Downloader</title>
+  <link rel="stylesheet" href="styles/theme.css">
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/animations.css">
+</head>
+<body>
+
+  <!-- Custom Titlebar -->
+  <div id="titlebar">
+    <div id="titlebar-drag">
+      <span id="titlebar-title">YTCD</span>
+    </div>
+    <div id="titlebar-controls">
+      <button class="titlebar-btn" id="minimize-btn" aria-label="Minimize">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="2" fill="currentColor"/></svg>
+      </button>
+      <button class="titlebar-btn" id="maximize-btn" aria-label="Maximize">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </button>
+      <button class="titlebar-btn titlebar-btn-close" id="close-btn" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="app">
+    <!-- Sidebar -->
+    <nav id="sidebar">
+      <div id="app-logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="100%" stop-color="#7b2ff7"/>
+            </linearGradient>
+          </defs>
+          <rect width="40" height="40" rx="10" fill="url(#logo-grad)" opacity="0.15"/>
+          <path d="M16 12v16l13-8z" fill="url(#logo-grad)"/>
+        </svg>
+        <span class="logo-text">YTCD</span>
+      </div>
+
+      <div class="nav-links">
+        <button class="nav-item active" data-page="home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/>
+          </svg>
+          <span>Home</span>
+        </button>
+        <button class="nav-item" data-page="history">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+          <span>History</span>
+        </button>
+        <button class="nav-item" data-page="settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </div>
+
+      <div id="app-version">v<span id="version-number">1.0.0</span></div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+
+      <!-- HOME PAGE -->
+      <section id="page-home" class="page active">
+        <!-- URL Input Card -->
+        <div class="section-card" id="url-section">
+          <h3 class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+            Paste YouTube Link
+          </h3>
+          <div class="url-input-group">
+            <input type="text" id="url-input" placeholder="https://www.youtube.com/watch?v=..." spellcheck="false" autocomplete="off">
+            <button id="paste-btn" title="Paste from clipboard">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
+                <rect x="8" y="2" width="8" height="4" rx="1"/>
+              </svg>
+            </button>
+          </div>
+          <div id="url-info" class="url-info hidden">
+            <img id="video-thumbnail" src="" alt="" class="video-thumb">
+            <div class="video-meta">
+              <span id="video-title" class="video-title"></span>
+              <span id="video-uploader" class="video-uploader"></span>
+              <span id="video-duration" class="video-duration"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Options Card -->
+        <div class="section-card" id="options-section">
+          <div class="options-row">
+            <!-- Type Selector -->
+            <div class="option-group">
+              <label class="option-label">Format</label>
+              <div id="type-selector">
+                <button class="type-btn active" data-type="video">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 9l5 3-5 3V9z"/>
+                  </svg>
+                  Video
+                </button>
+                <button class="type-btn" data-type="audio">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                  </svg>
+                  Audio
+                </button>
+              </div>
+            </div>
+
+            <!-- Quality Selector -->
+            <div class="option-group">
+              <label class="option-label" for="quality-select">Quality</label>
+              <div id="quality-wrapper">
+                <select id="quality-select">
+                  <option value="2160">2160p (4K)</option>
+                  <option value="1440">1440p (2K)</option>
+                  <option value="1080" selected>1080p (Full HD)</option>
+                  <option value="720">720p (HD)</option>
+                  <option value="480">480p</option>
+                  <option value="360">360p</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Save Location -->
+            <div class="option-group option-group-wide">
+              <label class="option-label">Save to</label>
+              <div id="save-location">
+                <span id="save-path-display" title="">Downloads</span>
+                <button id="browse-btn" title="Choose folder">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Card -->
+        <div class="section-card" id="download-section">
+          <button id="download-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Download</span>
+          </button>
+
+          <div id="progress-container" class="hidden">
+            <span id="progress-title" class="progress-title">Downloading...</span>
+            <div id="progress-bar-track">
+              <div id="progress-bar-fill"></div>
+            </div>
+            <div id="progress-stats">
+              <span id="progress-percent">0%</span>
+              <span id="progress-speed">-- MB/s</span>
+              <span id="progress-eta">--:--</span>
+            </div>
+            <button id="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY PAGE -->
+      <section id="page-history" class="page">
+        <div class="page-header">
+          <h2>Download History</h2>
+          <button id="clear-history-btn" class="btn-ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+            Clear All
+          </button>
+        </div>
+        <div id="download-list">
+          <div class="empty-state" id="history-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            <p>No downloads yet</p>
+            <span>Your download history will appear here</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS PAGE -->
+      <section id="page-settings" class="page">
+        <h2 class="page-title">Settings</h2>
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">Downloads</h3>
+
+          <div class="setting-item" id="setting-save-location">
+            <div class="setting-info">
+              <label>Default Save Location</label>
+              <span id="default-save-path" class="setting-value">Downloads</span>
+            </div>
+            <button id="change-default-path" class="btn-ghost">Change</button>
+          </div>
+
+          <div class="setting-item" id="setting-default-quality">
+            <div class="setting-info">
+              <label>Default Video Quality</label>
+            </div>
+            <select id="default-quality-select" class="setting-select">
+              <option value="2160">2160p (4K)</option>
+              <option value="1440">1440p (2K)</option>
+              <option value="1080" selected>1080p (Full HD)</option>
+              <option value="720">720p (HD)</option>
+              <option value="480">480p</option>
+              <option value="360">360p</option>
+            </select>
+          </div>
+
+          <div class="setting-item" id="setting-default-type">
+            <div class="setting-info">
+              <label>Default Format</label>
+            </div>
+            <select id="default-type-select" class="setting-select">
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">Application</h3>
+
+          <div class="setting-item" id="setting-auto-update">
+            <div class="setting-info">
+              <label>Auto-check for Updates</label>
+              <span class="setting-desc">Check for new versions when the app starts</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="auto-update-toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item" id="setting-notifications">
+            <div class="setting-info">
+              <label>Desktop Notifications</label>
+              <span class="setting-desc">Show notification when download completes</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="notifications-toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">About</h3>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label>YTCD - YouTube Content Downloader</label>
+              <span class="setting-desc">Version <span id="settings-version">1.0.0</span></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="status-message" class="toast">
+    <span id="toast-icon"></span>
+    <span id="toast-text"></span>
+  </div>
+
+  <!-- Update banner -->
+  <div id="update-banner" class="hidden">
+    <span>A new version is available!</span>
+    <button id="update-btn">Update Now</button>
+    <button id="dismiss-update" class="btn-ghost">Later</button>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

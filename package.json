@@ -1,0 +1,59 @@
+{
+  "name": "ytcd",
+  "version": "1.0.0",
+  "description": "YouTube Content Downloader - Download videos and audio from YouTube",
+  "main": "src/main.js",
+  "author": "YTCD",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "setup": "node scripts/setup.js",
+    "prebuild": "node scripts/clean-dist.js",
+    "build": "electron-builder",
+    "build:win": "node scripts/clean-dist.js && electron-builder --win"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yunay/ytcd.git"
+  },
+  "build": {
+    "appId": "com.ytcd.app",
+    "productName": "YTCD",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "yunay",
+        "repo": "ytcd"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "bin/",
+        "to": "bin/",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "src/assets/icon.ico",
+      "uninstallerIcon": "src/assets/icon.ico"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(npm install:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial release v1.0.0 — YTCD YouTube Content Downloader\n\nElectron desktop app for downloading YouTube videos and audio with:\n- Video/audio format toggle with quality selection \\(4K to 360p, audio bitrates\\)\n- Custom save location with folder picker\n- Real-time download progress with speed and ETA\n- Download history with file/folder quick-open\n- Settings persistence across sessions\n- Auto-update via GitHub Releases \\(electron-updater\\)\n- Modern dark-themed UI with glassmorphism cards and gradient accents\n- Keyboard shortcuts \\(Ctrl+V, Ctrl+D, Escape\\)\n- NSIS installer for Windows with desktop/start menu shortcuts\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell:*)"
+    ]
+  }
+}
