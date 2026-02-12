@@ -122,12 +122,13 @@ ipcMain.handle('clipboard:read', () => {
 // Shell
 ipcMain.handle('shell:open-path', async (_, filePath) => {
   if (fs.existsSync(filePath)) {
-    const stat = fs.statSync(filePath);
-    if (stat.isDirectory()) {
-      shell.openPath(filePath);
-    } else {
-      shell.showItemInFolder(filePath);
-    }
+    shell.openPath(filePath);
+  }
+});
+
+ipcMain.handle('shell:show-in-folder', async (_, filePath) => {
+  if (fs.existsSync(filePath)) {
+    shell.showItemInFolder(filePath);
   }
 });
 
@@ -162,6 +163,13 @@ ipcMain.handle('history:add', (_, item) => {
   if (history.length > 100) history.length = 100;
   saveHistory(history);
   return history;
+});
+
+ipcMain.handle('history:delete', (_, id) => {
+  const history = loadHistory();
+  const updated = history.filter(item => item.id !== id);
+  saveHistory(updated);
+  return updated;
 });
 
 ipcMain.handle('history:clear', () => {
@@ -215,10 +223,7 @@ ipcMain.handle('download:cancel', () => {
 app.whenReady().then(() => {
   createWindow();
 
-  const settings = loadSettings();
-  if (settings.autoUpdate) {
-    initUpdater(mainWindow);
-  }
+  initUpdater(mainWindow);
 });
 
 app.on('window-all-closed', () => {

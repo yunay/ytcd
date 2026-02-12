@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
   // File dialogs
   openFolderDialog: () => ipcRenderer.invoke('dialog:open-folder'),
   openPath: (filePath) => ipcRenderer.invoke('shell:open-path', filePath),
+  showInFolder: (filePath) => ipcRenderer.invoke('shell:show-in-folder', filePath),
 
   // Settings
   getSettings: () => ipcRenderer.invoke('settings:get'),
@@ -34,6 +35,7 @@ contextBridge.exposeInMainWorld('api', {
   // History
   getHistory: () => ipcRenderer.invoke('history:get'),
   addToHistory: (item) => ipcRenderer.invoke('history:add', item),
+  deleteHistoryItem: (id) => ipcRenderer.invoke('history:delete', id),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
 
   // Clipboard
@@ -43,9 +45,19 @@ contextBridge.exposeInMainWorld('api', {
   getVersion: () => ipcRenderer.invoke('app:get-version'),
 
   // Updater
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
   onUpdateAvailable: (callback) => {
     ipcRenderer.removeAllListeners('update:available');
     ipcRenderer.on('update:available', (_, data) => callback(data));
+  },
+  onUpdateNotAvailable: (callback) => {
+    ipcRenderer.removeAllListeners('update:not-available');
+    ipcRenderer.on('update:not-available', () => callback());
+  },
+  onUpdateError: (callback) => {
+    ipcRenderer.removeAllListeners('update:error');
+    ipcRenderer.on('update:error', (_, data) => callback(data));
   },
   onUpdateDownloaded: (callback) => {
     ipcRenderer.removeAllListeners('update:downloaded');

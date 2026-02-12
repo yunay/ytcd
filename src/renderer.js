@@ -130,6 +130,12 @@
       clearTimeout(fetchTimeout);
       const url = urlInput.value.trim();
 
+      if (isPlaylistUrl(url)) {
+        hideVideoInfo();
+        showToast('Playlists are not supported. Please paste a single video link.', 'warning');
+        return;
+      }
+
       if (isValidYouTubeUrl(url)) {
         fetchTimeout = setTimeout(() => fetchVideoInfo(url), 600);
       } else {
@@ -138,8 +144,12 @@
     });
   }
 
+  function isPlaylistUrl(url) {
+    return /[?&]list=/.test(url) || /youtube\.com\/playlist/.test(url);
+  }
+
   function isValidYouTubeUrl(url) {
-    return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/|playlist\?list=)|youtu\.be\/).+/.test(url);
+    return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/).+/.test(url);
   }
 
   async function fetchVideoInfo(url) {
@@ -148,11 +158,14 @@
     const uploaderEl = $('#video-uploader');
     const durationEl = $('#video-duration');
     const thumbEl = $('#video-thumbnail');
+    const loaderEl = $('#thumb-loader');
 
     titleEl.textContent = 'Fetching video info...';
     uploaderEl.textContent = '';
     durationEl.textContent = '';
     thumbEl.src = '';
+    thumbEl.style.opacity = '0';
+    loaderEl.classList.remove('hidden');
     infoEl.classList.remove('hidden');
 
     const result = await window.api.getVideoInfo(url);
@@ -163,11 +176,21 @@
       uploaderEl.textContent = videoInfo.uploader;
       durationEl.textContent = formatDuration(videoInfo.duration);
       if (videoInfo.thumbnail) {
+        thumbEl.onload = () => {
+          thumbEl.style.opacity = '1';
+          loaderEl.classList.add('hidden');
+        };
+        thumbEl.onerror = () => {
+          loaderEl.classList.add('hidden');
+        };
         thumbEl.src = videoInfo.thumbnail;
+      } else {
+        loaderEl.classList.add('hidden');
       }
     } else {
       titleEl.textContent = 'Could not fetch video info';
       uploaderEl.textContent = result.error || '';
+      loaderEl.classList.add('hidden');
       videoInfo = null;
     }
   }
@@ -296,6 +319,10 @@
       showToast('Please enter a YouTube URL', 'warning');
       return;
     }
+    if (isPlaylistUrl(url)) {
+      showToast('Playlists are not supported. Please paste a single video link.', 'warning');
+      return;
+    }
     if (!isValidYouTubeUrl(url)) {
       showToast('Please enter a valid YouTube URL', 'warning');
       return;
@@ -394,13 +421,13 @@
       <span class="download-item-status ${item.status}">${item.status === 'success' ? 'Done' : 'Failed'}</span>
       <div class="download-item-actions">
         ${item.status === 'success' ? `
-          <button class="open-file-btn" title="Open file" data-path="${escapeAttr(item.filePath)}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </button>
-          <button class="open-folder-btn" title="Open folder" data-path="${escapeAttr(item.folderPath)}">
+          <button class="open-folder-btn" title="Show in folder">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
           </button>
         ` : ''}
+        <button class="delete-item-btn" title="Delete from history">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
       </div>
     `;
 
@@ -415,7 +442,22 @@
     const openFolderBtn = div.querySelector('.open-folder-btn');
     if (openFolderBtn) {
       openFolderBtn.addEventListener('click', () => {
-        window.api.openPath(item.folderPath);
+        window.api.showInFolder(item.filePath);
+      });
+    }
+
+    const deleteBtn = div.querySelector('.delete-item-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        await window.api.deleteHistoryItem(item.id);
+        div.remove();
+        // Check if list is now empty
+        const remaining = $('#download-list').querySelectorAll('.download-item');
+        if (remaining.length === 0) {
+          const emptyState = $('#history-empty');
+          if (emptyState) emptyState.style.display = '';
+        }
+        showToast('Item removed from history', 'success');
       });
     }
 
@@ -511,25 +553,59 @@
 
   // ── Update listener ───────────────────────────────────────────────
   function setupUpdateListener() {
+    let updateReady = false;
+
     window.api.onUpdateAvailable((data) => {
       $('#update-banner').classList.remove('hidden');
+      $('#update-btn').textContent = 'Update Now';
+      $('#update-btn').disabled = false;
+    });
+
+    window.api.onUpdateNotAvailable(() => {
+      showToast('You are on the latest version', 'success');
+    });
+
+    window.api.onUpdateError(() => {
+      showToast('Failed to check for updates', 'error');
+      $('#update-btn').textContent = 'Update Now';
+      $('#update-btn').disabled = false;
     });
 
     window.api.onUpdateDownloaded(() => {
-      const updateBtn = $('#update-btn');
-      updateBtn.textContent = 'Restart & Update';
-      updateBtn.addEventListener('click', () => {
-        window.api.installUpdate();
-      });
+      updateReady = true;
+      $('#update-btn').textContent = 'Restart & Update';
+      $('#update-btn').disabled = false;
     });
 
-    $('#update-btn').addEventListener('click', () => {
-      window.api.installUpdate();
+    $('#update-btn').addEventListener('click', async () => {
+      if (updateReady) {
+        window.api.installUpdate();
+      } else {
+        $('#update-btn').textContent = 'Downloading...';
+        $('#update-btn').disabled = true;
+        await window.api.downloadUpdate();
+      }
     });
 
     $('#dismiss-update').addEventListener('click', () => {
       $('#update-banner').classList.add('hidden');
     });
+
+    // Check for updates button in settings
+    $('#check-updates-btn').addEventListener('click', async () => {
+      $('#check-updates-btn').disabled = true;
+      $('#check-updates-btn').textContent = 'Checking...';
+      await window.api.checkForUpdates();
+      $('#check-updates-btn').disabled = false;
+      $('#check-updates-btn').textContent = 'Check for Updates';
+    });
+
+    // Auto-check on load if enabled
+    if (settings.autoUpdate) {
+      setTimeout(() => {
+        window.api.checkForUpdates();
+      }, 5000);
+    }
   }
 
   // ── Toast notifications ───────────────────────────────────────────

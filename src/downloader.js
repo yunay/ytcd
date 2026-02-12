@@ -108,6 +108,7 @@ function createDownloader(getBinPath) {
       args = [
         '-f', `bestvideo[height<=${heightNum}]+bestaudio/best[height<=${heightNum}]/best`,
         '--merge-output-format', 'mp4',
+        '--postprocessor-args', 'Merger+ffmpeg:-c:v copy -c:a aac -b:a 192k',
         '-o', path.join(savePath, '%(title)s.%(ext)s'),
         '--newline',
         '--no-warnings',

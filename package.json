@@ -1,6 +1,6 @@
 {
   "name": "ytcd",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "YouTube Content Downloader - Download videos and audio from YouTube",
   "main": "src/main.js",
   "author": "YTCD",
@@ -10,7 +10,7 @@
     "setup": "node scripts/setup.js",
     "prebuild": "node scripts/clean-dist.js",
     "build": "electron-builder",
-    "build:win": "node scripts/clean-dist.js && electron-builder --win"
+    "publish": "node scripts/clean-dist.js && electron-builder --win --publish always"
   },
   "dependencies": {
     "electron-updater": "^6.1.0"

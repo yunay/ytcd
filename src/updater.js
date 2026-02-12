@@ -1,8 +1,11 @@
 function initUpdater(mainWindow) {
-  // Only run updater in packaged builds
-  const { app } = require('electron');
+  const { app, ipcMain } = require('electron');
+
   if (!app.isPackaged) {
     console.log('[Updater] Skipping auto-update in development mode');
+    ipcMain.handle('update:install', () => {});
+    ipcMain.handle('update:download', () => {});
+    ipcMain.handle('update:check', () => ({ update: false }));
     return;
   }
 
@@ -19,6 +22,10 @@ function initUpdater(mainWindow) {
       });
     });
 
+    autoUpdater.on('update-not-available', () => {
+      mainWindow?.webContents.send('update:not-available');
+    });
+
     autoUpdater.on('update-downloaded', (info) => {
       mainWindow?.webContents.send('update:downloaded', {
         version: info.version
@@ -27,21 +34,33 @@ function initUpdater(mainWindow) {
 
     autoUpdater.on('error', (err) => {
       console.error('[Updater] Error:', err.message);
+      mainWindow?.webContents.send('update:error', { message: err.message });
     });
 
-    // Check for updates after 5-second delay
-    setTimeout(() => {
-      autoUpdater.checkForUpdates().catch((err) => {
-        console.error('[Updater] Check failed:', err.message);
-      });
-    }, 5000);
+    // Start downloading the update
+    ipcMain.handle('update:download', async () => {
+      try {
+        await autoUpdater.downloadUpdate();
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    });
 
-    // IPC handler for manual update install
-    const { ipcMain } = require('electron');
+    // Quit and install the already-downloaded update
     ipcMain.handle('update:install', () => {
-      autoUpdater.downloadUpdate().then(() => {
-        autoUpdater.quitAndInstall(false, true);
-      });
+      autoUpdater.quitAndInstall(false, true);
+    });
+
+    // Check for updates
+    ipcMain.handle('update:check', async () => {
+      try {
+        const result = await autoUpdater.checkForUpdates();
+        return { update: !!result?.updateInfo };
+      } catch (err) {
+        console.error('[Updater] Check failed:', err.message);
+        return { update: false, error: err.message };
+      }
     });
 
   } catch (err) {

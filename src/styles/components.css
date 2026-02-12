@@ -220,12 +220,32 @@
   animation: fadeIn var(--transition-base);
 }
 
+.video-thumb-wrapper {
+  position: relative;
+  width: 120px;
+  height: 68px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
 .video-thumb {
   width: 120px;
   height: 68px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
+}
+
+.thumb-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--accent-start);
 }
 
 .video-meta {
@@ -596,6 +616,11 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
   border-color: var(--border-medium);
+}
+.delete-item-btn:hover {
+  color: var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  background: var(--color-error-bg) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════

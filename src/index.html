@@ -96,7 +96,14 @@
             </button>
           </div>
           <div id="url-info" class="url-info hidden">
-            <img id="video-thumbnail" src="" alt="" class="video-thumb">
+            <div class="video-thumb-wrapper">
+              <img id="video-thumbnail" src="" alt="" class="video-thumb">
+              <div id="thumb-loader" class="thumb-loader hidden">
+                <svg class="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
             <div class="video-meta">
               <span id="video-title" class="video-title"></span>
               <span id="video-uploader" class="video-uploader"></span>
@@ -276,6 +283,7 @@
               <label>YTCD - YouTube Content Downloader</label>
               <span class="setting-desc">Version <span id="settings-version">1.0.0</span></span>
             </div>
+            <button id="check-updates-btn" class="btn-ghost">Check for Updates</button>
           </div>
         </div>
       </section>
