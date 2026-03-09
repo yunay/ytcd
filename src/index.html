@@ -110,6 +110,19 @@
               <span id="video-duration" class="video-duration"></span>
             </div>
           </div>
+          <div id="playlist-info" class="url-info hidden">
+            <div class="playlist-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+            </div>
+            <div class="video-meta">
+              <span id="playlist-title" class="video-title"></span>
+              <span id="playlist-count" class="video-uploader"></span>
+              <span id="playlist-duration" class="video-duration"></span>
+            </div>
+          </div>
         </div>
 
         <!-- Options Card -->
@@ -185,6 +198,29 @@
             </div>
             <button id="cancel-btn">Cancel</button>
           </div>
+
+          <div id="playlist-progress-container" class="hidden">
+            <div class="playlist-overall-progress">
+              <span id="playlist-progress-label" class="progress-title">Video 1 of 1</span>
+              <div class="progress-bar-track">
+                <div id="playlist-overall-bar-fill" class="progress-bar-fill"></div>
+              </div>
+            </div>
+            <span id="playlist-current-title" class="progress-title">Starting...</span>
+            <div class="progress-bar-track">
+              <div id="playlist-video-bar-fill" class="progress-bar-fill"></div>
+            </div>
+            <div class="playlist-progress-stats">
+              <span id="playlist-video-percent">0%</span>
+              <span id="playlist-video-speed">-- MB/s</span>
+              <span id="playlist-video-eta">--:--</span>
+            </div>
+            <div id="playlist-summary">
+              <span id="playlist-completed-count">0 completed</span>
+              <span id="playlist-failed-count"></span>
+            </div>
+            <button id="cancel-playlist-btn">Cancel</button>
+          </div>
         </div>
       </section>
 
@@ -227,15 +263,9 @@
 
           <div class="setting-item" id="setting-default-quality">
             <div class="setting-info">
-              <label>Default Video Quality</label>
+              <label>Default Quality</label>
             </div>
             <select id="default-quality-select" class="setting-select">
-              <option value="2160">2160p (4K)</option>
-              <option value="1440">1440p (2K)</option>
-              <option value="1080" selected>1080p (Full HD)</option>
-              <option value="720">720p (HD)</option>
-              <option value="480">480p</option>
-              <option value="360">360p</option>
             </select>
           </div>
 

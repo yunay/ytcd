@@ -9,8 +9,12 @@
   let settings = {};
   let currentType = 'video';
   let isDownloading = false;
+  let isFetching = false;
   let videoInfo = null;
+  let playlistInfo = null;
+  let isPlaylist = false;
   let fetchTimeout = null;
+  let downloadTitle = '';
 
   const VIDEO_QUALITIES = [
     { value: '2160', label: '2160p (4K)' },
@@ -69,11 +73,12 @@
     // Update quality dropdown for current type
     populateQualities(currentType);
 
-    // Set default quality if available
-    if (settings.defaultQuality) {
+    // Set default quality based on type
+    const defaultQ = currentType === 'audio' ? settings.defaultAudioQuality : settings.defaultVideoQuality;
+    if (defaultQ) {
       const qualitySelect = $('#quality-select');
-      if (qualitySelect.querySelector(`option[value="${settings.defaultQuality}"]`)) {
-        qualitySelect.value = settings.defaultQuality;
+      if (qualitySelect.querySelector(`option[value="${defaultQ}"]`)) {
+        qualitySelect.value = defaultQ;
       }
     }
   }
@@ -132,14 +137,13 @@
 
       if (isPlaylistUrl(url)) {
         hideVideoInfo();
-        showToast('Playlists are not supported. Please paste a single video link.', 'warning');
-        return;
-      }
-
-      if (isValidYouTubeUrl(url)) {
+        fetchTimeout = setTimeout(() => fetchPlaylistInfo(url), 600);
+      } else if (isValidYouTubeUrl(url)) {
+        hidePlaylistInfo();
         fetchTimeout = setTimeout(() => fetchVideoInfo(url), 600);
       } else {
         hideVideoInfo();
+        hidePlaylistInfo();
       }
     });
   }
@@ -149,7 +153,12 @@
   }
 
   function isValidYouTubeUrl(url) {
-    return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/).+/.test(url);
+    return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/|playlist\?)|youtu\.be\/).+/.test(url);
+  }
+
+  function updateDownloadBtnState() {
+    const btn = $('#download-btn');
+    btn.disabled = isFetching || isDownloading;
   }
 
   async function fetchVideoInfo(url) {
@@ -160,6 +169,11 @@
     const thumbEl = $('#video-thumbnail');
     const loaderEl = $('#thumb-loader');
 
+    isPlaylist = false;
+    playlistInfo = null;
+    isFetching = true;
+    updateDownloadBtnState();
+
     titleEl.textContent = 'Fetching video info...';
     uploaderEl.textContent = '';
     durationEl.textContent = '';
@@ -169,6 +183,9 @@
     infoEl.classList.remove('hidden');
 
     const result = await window.api.getVideoInfo(url);
+
+    isFetching = false;
+    updateDownloadBtnState();
 
     if (result.success) {
       videoInfo = result.data;
@@ -195,9 +212,48 @@
     }
   }
 
+  async function fetchPlaylistInfo(url) {
+    const infoEl = $('#playlist-info');
+    const titleEl = $('#playlist-title');
+    const countEl = $('#playlist-count');
+    const durationEl = $('#playlist-duration');
+
+    videoInfo = null;
+    isPlaylist = true;
+    isFetching = true;
+    updateDownloadBtnState();
+
+    titleEl.textContent = 'Fetching playlist info...';
+    countEl.textContent = '';
+    durationEl.textContent = '';
+    infoEl.classList.remove('hidden');
+
+    const result = await window.api.getPlaylistInfo(url);
+
+    isFetching = false;
+    updateDownloadBtnState();
+
+    if (result.success) {
+      playlistInfo = result.data;
+      titleEl.textContent = playlistInfo.title;
+      countEl.textContent = `${playlistInfo.videoCount} video${playlistInfo.videoCount !== 1 ? 's' : ''}`;
+      durationEl.textContent = playlistInfo.totalDuration ? `Total: ${formatDuration(playlistInfo.totalDuration)}` : '';
+    } else {
+      titleEl.textContent = 'Could not fetch playlist info';
+      countEl.textContent = result.error || '';
+      playlistInfo = null;
+    }
+  }
+
   function hideVideoInfo() {
     $('#url-info').classList.add('hidden');
     videoInfo = null;
+  }
+
+  function hidePlaylistInfo() {
+    $('#playlist-info').classList.add('hidden');
+    playlistInfo = null;
+    isPlaylist = false;
   }
 
   function formatDuration(seconds) {
@@ -238,9 +294,11 @@
       select.appendChild(opt);
     });
 
-    // Set default
-    if (type === 'video' && settings.defaultQuality) {
-      select.value = settings.defaultQuality;
+    // Set default based on type
+    if (type === 'video' && settings.defaultVideoQuality) {
+      select.value = settings.defaultVideoQuality;
+    } else if (type === 'audio' && settings.defaultAudioQuality) {
+      select.value = settings.defaultAudioQuality;
     }
   }
 
@@ -261,12 +319,13 @@
   function setupDownload() {
     const downloadBtn = $('#download-btn');
     const cancelBtn = $('#cancel-btn');
-    const progressContainer = $('#progress-container');
+    const cancelPlaylistBtn = $('#cancel-playlist-btn');
 
     downloadBtn.addEventListener('click', startDownload);
     cancelBtn.addEventListener('click', cancelDownload);
+    cancelPlaylistBtn.addEventListener('click', cancelDownload);
 
-    // Listen for progress events
+    // Single video progress events
     window.api.onDownloadProgress((data) => {
       $('#progress-bar-fill').style.width = `${data.percent}%`;
       $('#progress-percent').textContent = `${Math.round(data.percent)}%`;
@@ -281,9 +340,9 @@
       isDownloading = false;
       resetDownloadUI();
 
-      // Add to history
+      // Add to history — use title captured at download start (from JSON, always UTF-8)
       await window.api.addToHistory({
-        title: data.filename || videoInfo?.title || 'Unknown',
+        title: downloadTitle || data.filename || 'Unknown',
         type: currentType,
         quality: $('#quality-select').value,
         filePath: data.filePath,
@@ -300,7 +359,7 @@
 
       // Add failed entry to history
       await window.api.addToHistory({
-        title: videoInfo?.title || 'Unknown',
+        title: downloadTitle || 'Unknown',
         type: currentType,
         quality: $('#quality-select').value,
         filePath: '',
@@ -309,6 +368,70 @@
       });
 
       showToast(data.message || 'Download failed', 'error');
+    });
+
+    // Playlist progress events
+    window.api.onPlaylistVideoStart((data) => {
+      $('#playlist-progress-label').textContent = `Video ${data.videoIndex} of ${data.videoCount}`;
+      $('#playlist-overall-bar-fill').style.width = `${((data.videoIndex - 1) / data.videoCount) * 100}%`;
+      $('#playlist-current-title').textContent = data.title;
+      $('#playlist-video-bar-fill').style.width = '0%';
+      $('#playlist-video-percent').textContent = '0%';
+      $('#playlist-video-speed').textContent = '---';
+      $('#playlist-video-eta').textContent = '---';
+    });
+
+    window.api.onPlaylistVideoProgress((data) => {
+      $('#playlist-video-bar-fill').style.width = `${data.percent}%`;
+      $('#playlist-video-percent').textContent = `${Math.round(data.percent)}%`;
+      $('#playlist-video-speed').textContent = data.speed || '---';
+      $('#playlist-video-eta').textContent = data.eta || '---';
+    });
+
+    window.api.onPlaylistVideoComplete(async (data) => {
+      // Update overall progress
+      $('#playlist-overall-bar-fill').style.width = `${(data.videoIndex / data.videoCount) * 100}%`;
+      $('#playlist-completed-count').textContent = `${data.completed} completed`;
+      if (data.failed > 0) {
+        $('#playlist-failed-count').textContent = `${data.failed} failed`;
+      }
+
+      // Add individual video to history
+      await window.api.addToHistory({
+        title: data.title,
+        type: data.type,
+        quality: data.quality,
+        filePath: data.filePath,
+        folderPath: data.savePath,
+        status: 'success'
+      });
+    });
+
+    window.api.onPlaylistVideoError(async (data) => {
+      $('#playlist-completed-count').textContent = `${data.completed} completed`;
+      $('#playlist-failed-count').textContent = `${data.failed} failed`;
+
+      await window.api.addToHistory({
+        title: data.title,
+        type: currentType,
+        quality: $('#quality-select').value,
+        filePath: '',
+        folderPath: settings.savePath,
+        status: 'failed'
+      });
+    });
+
+    window.api.onPlaylistComplete((data) => {
+      isDownloading = false;
+      resetDownloadUI();
+
+      if (data.cancelled) {
+        showToast('Playlist download cancelled', 'warning');
+      } else if (data.failed > 0) {
+        showToast(`Playlist done: ${data.completed}/${data.total} succeeded, ${data.failed} failed`, 'warning');
+      } else {
+        showToast(`Playlist downloaded: all ${data.total} videos completed!`, 'success');
+      }
     });
   }
 
@@ -319,40 +442,67 @@
       showToast('Please enter a YouTube URL', 'warning');
       return;
     }
-    if (isPlaylistUrl(url)) {
-      showToast('Playlists are not supported. Please paste a single video link.', 'warning');
-      return;
-    }
-    if (!isValidYouTubeUrl(url)) {
+    if (!isPlaylist && !isValidYouTubeUrl(url)) {
       showToast('Please enter a valid YouTube URL', 'warning');
       return;
     }
-    if (isDownloading) return;
+    if (isDownloading || isFetching) return;
 
     isDownloading = true;
     const downloadBtn = $('#download-btn');
     downloadBtn.classList.add('downloading');
 
-    // Show progress
-    $('#progress-container').classList.remove('hidden');
-    $('#progress-bar-fill').style.width = '0%';
-    $('#progress-percent').textContent = '0%';
-    $('#progress-speed').textContent = '---';
-    $('#progress-eta').textContent = '---';
-    $('#progress-title').textContent = 'Starting download...';
+    if (isPlaylist && playlistInfo) {
+      // Playlist download
+      $('#playlist-progress-container').classList.remove('hidden');
+      $('#playlist-progress-label').textContent = `Video 1 of ${playlistInfo.videoCount}`;
+      $('#playlist-overall-bar-fill').style.width = '0%';
+      $('#playlist-video-bar-fill').style.width = '0%';
+      $('#playlist-video-percent').textContent = '0%';
+      $('#playlist-video-speed').textContent = '---';
+      $('#playlist-video-eta').textContent = '---';
+      $('#playlist-current-title').textContent = 'Starting...';
+      $('#playlist-completed-count').textContent = '0 completed';
+      $('#playlist-failed-count').textContent = '';
 
-    const options = {
-      url: url,
-      type: currentType,
-      quality: $('#quality-select').value,
-      savePath: settings.savePath
-    };
+      const result = await window.api.startPlaylistDownload({
+        entries: playlistInfo.entries,
+        type: currentType,
+        quality: $('#quality-select').value,
+        savePath: settings.savePath,
+        playlistTitle: playlistInfo.title
+      });
 
-    const result = await window.api.startDownload(options);
-    if (!result.success) {
-      isDownloading = false;
-      resetDownloadUI();
-      showToast(result.error || 'Failed to start download', 'error');
+      if (!result.success) {
+        isDownloading = false;
+        resetDownloadUI();
+        showToast(result.error || 'Failed to start playlist download', 'error');
+      }
+    } else {
+      // Single video download
+      $('#progress-container').classList.remove('hidden');
+      $('#progress-bar-fill').style.width = '0%';
+      $('#progress-percent').textContent = '0%';
+      $('#progress-speed').textContent = '---';
+      $('#progress-eta').textContent = '---';
+      $('#progress-title').textContent = 'Starting download...';
+
+      // Capture title now (from JSON metadata, always valid UTF-8)
+      downloadTitle = videoInfo?.title || '';
+
+      const options = {
+        url: url,
+        type: currentType,
+        quality: $('#quality-select').value,
+        savePath: settings.savePath
+      };
+
+      const result = await window.api.startDownload(options);
+      if (!result.success) {
+        isDownloading = false;
+        resetDownloadUI();
+        showToast(result.error || 'Failed to start download', 'error');
+      }
     }
   }
 
@@ -366,6 +516,7 @@
   function resetDownloadUI() {
     $('#download-btn').classList.remove('downloading');
     $('#progress-container').classList.add('hidden');
+    $('#playlist-progress-container').classList.add('hidden');
   }
 
   // ── History ───────────────────────────────────────────────────────
@@ -442,7 +593,11 @@
     const openFolderBtn = div.querySelector('.open-folder-btn');
     if (openFolderBtn) {
       openFolderBtn.addEventListener('click', () => {
-        window.api.showInFolder(item.filePath);
+        if (item.filePath) {
+          window.api.showInFolder(item.filePath);
+        } else if (item.folderPath) {
+          window.api.openPath(item.folderPath);
+        }
       });
     }
 
@@ -490,23 +645,46 @@
       }
     });
 
-    // Default quality
+    // Default quality (dynamic based on type)
     const defaultQualitySelect = $('#default-quality-select');
-    if (settings.defaultQuality) {
-      defaultQualitySelect.value = settings.defaultQuality;
-    }
-    defaultQualitySelect.addEventListener('change', async () => {
-      settings.defaultQuality = defaultQualitySelect.value;
-      await window.api.setSettings(settings);
-    });
-
-    // Default type
     const defaultTypeSelect = $('#default-type-select');
+
+    function populateSettingsQualities(type) {
+      const qualities = type === 'audio' ? AUDIO_QUALITIES : VIDEO_QUALITIES;
+      defaultQualitySelect.innerHTML = '';
+      qualities.forEach(q => {
+        const opt = document.createElement('option');
+        opt.value = q.value;
+        opt.textContent = q.label;
+        defaultQualitySelect.appendChild(opt);
+      });
+      // Restore saved default for this type
+      const savedQ = type === 'audio' ? settings.defaultAudioQuality : settings.defaultVideoQuality;
+      if (savedQ && defaultQualitySelect.querySelector(`option[value="${savedQ}"]`)) {
+        defaultQualitySelect.value = savedQ;
+      }
+    }
+
+    // Initialize with current default type
     if (settings.defaultType) {
       defaultTypeSelect.value = settings.defaultType;
     }
+    populateSettingsQualities(settings.defaultType || 'video');
+
+    defaultQualitySelect.addEventListener('change', async () => {
+      const type = defaultTypeSelect.value;
+      if (type === 'audio') {
+        settings.defaultAudioQuality = defaultQualitySelect.value;
+      } else {
+        settings.defaultVideoQuality = defaultQualitySelect.value;
+      }
+      await window.api.setSettings(settings);
+    });
+
+    // Default type - update quality options when type changes
     defaultTypeSelect.addEventListener('change', async () => {
       settings.defaultType = defaultTypeSelect.value;
+      populateSettingsQualities(settings.defaultType);
       await window.api.setSettings(settings);
     });
 

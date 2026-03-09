@@ -23,6 +23,30 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('download:error', (_, data) => callback(data));
   },
 
+  // Playlist
+  getPlaylistInfo: (url) => ipcRenderer.invoke('download:get-playlist-info', url),
+  startPlaylistDownload: (options) => ipcRenderer.invoke('download:start-playlist', options),
+  onPlaylistVideoStart: (callback) => {
+    ipcRenderer.removeAllListeners('playlist:video-start');
+    ipcRenderer.on('playlist:video-start', (_, data) => callback(data));
+  },
+  onPlaylistVideoProgress: (callback) => {
+    ipcRenderer.removeAllListeners('playlist:video-progress');
+    ipcRenderer.on('playlist:video-progress', (_, data) => callback(data));
+  },
+  onPlaylistVideoComplete: (callback) => {
+    ipcRenderer.removeAllListeners('playlist:video-complete');
+    ipcRenderer.on('playlist:video-complete', (_, data) => callback(data));
+  },
+  onPlaylistVideoError: (callback) => {
+    ipcRenderer.removeAllListeners('playlist:video-error');
+    ipcRenderer.on('playlist:video-error', (_, data) => callback(data));
+  },
+  onPlaylistComplete: (callback) => {
+    ipcRenderer.removeAllListeners('playlist:complete');
+    ipcRenderer.on('playlist:complete', (_, data) => callback(data));
+  },
+
   // File dialogs
   openFolderDialog: () => ipcRenderer.invoke('dialog:open-folder'),
   openPath: (filePath) => ipcRenderer.invoke('shell:open-path', filePath),

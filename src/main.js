@@ -28,7 +28,8 @@ function loadSettings() {
   } catch (e) { /* ignore */ }
   return {
     savePath: app.getPath('downloads'),
-    defaultQuality: '1080p',
+    defaultVideoQuality: '1080',
+    defaultAudioQuality: 'best',
     defaultType: 'video',
     autoUpdate: true,
     notifications: true,
@@ -129,6 +130,12 @@ ipcMain.handle('shell:open-path', async (_, filePath) => {
 ipcMain.handle('shell:show-in-folder', async (_, filePath) => {
   if (fs.existsSync(filePath)) {
     shell.showItemInFolder(filePath);
+  } else {
+    // File doesn't exist — try opening the parent folder
+    const dir = path.dirname(filePath);
+    if (fs.existsSync(dir)) {
+      shell.openPath(dir);
+    }
   }
 });
 
@@ -210,13 +217,44 @@ ipcMain.handle('download:start', async (_, options) => {
   }
 });
 
-ipcMain.handle('download:cancel', () => {
-  if (currentDownloadProcess) {
-    downloader.cancel();
-    currentDownloadProcess = null;
-    return true;
+ipcMain.handle('download:get-playlist-info', async (_, url) => {
+  try {
+    const info = await downloader.getPlaylistInfo(url);
+    return { success: true, data: info };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
-  return false;
+});
+
+ipcMain.handle('download:start-playlist', async (_, options) => {
+  try {
+    downloader.downloadPlaylist(options, {
+      onVideoStart: (data) => {
+        mainWindow?.webContents.send('playlist:video-start', data);
+      },
+      onVideoProgress: (data) => {
+        mainWindow?.webContents.send('playlist:video-progress', data);
+      },
+      onVideoComplete: (data) => {
+        mainWindow?.webContents.send('playlist:video-complete', data);
+      },
+      onVideoError: (data) => {
+        mainWindow?.webContents.send('playlist:video-error', data);
+      },
+      onPlaylistComplete: (data) => {
+        mainWindow?.webContents.send('playlist:complete', data);
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('download:cancel', () => {
+  downloader.cancel();
+  currentDownloadProcess = null;
+  return true;
 });
 
 // ── App lifecycle ───────────────────────────────────────────────────
