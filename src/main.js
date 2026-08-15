@@ -19,20 +19,37 @@ function getBinPath(binary) {
 }
 
 // ── Settings management ─────────────────────────────────────────────
-function loadSettings() {
-  try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-    }
-  } catch (e) { /* ignore */ }
+function defaultSettings() {
   return {
     savePath: app.getPath('downloads'),
-    defaultQuality: '1080p',
+    defaultQuality: '1080',
+    defaultAudioQuality: 'best',
     defaultType: 'video',
     autoUpdate: true,
     notifications: true,
     startMinimized: false
   };
+}
+
+function loadSettings() {
+  let stored = {};
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      stored = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) || {};
+    }
+  } catch (e) { /* ignore */ }
+
+  // Merge over the defaults so a settings file written by an older version
+  // still gets keys added later.
+  const settings = { ...defaultSettings(), ...stored };
+
+  // Older builds stored '1080p' while the <option> values are bare numbers;
+  // an unmatched value leaves the dropdown blank.
+  if (typeof settings.defaultQuality === 'string') {
+    settings.defaultQuality = settings.defaultQuality.replace(/p$/i, '');
+  }
+
+  return settings;
 }
 
 function saveSettings(settings) {

@@ -11,6 +11,8 @@
   let isDownloading = false;
   let videoInfo = null;
   let fetchTimeout = null;
+  let fetchRequestId = 0;
+  let playlistScope = 'single';
 
   const VIDEO_QUALITIES = [
     { value: '2160', label: '2160p (4K)' },
@@ -40,6 +42,7 @@
     setupTitlebar();
     setupNavigation();
     setupUrlInput();
+    setupPlaylistChoice();
     setupTypeSelector();
     setupQualitySelector();
     setupSaveLocation();
@@ -66,16 +69,8 @@
       btn.classList.toggle('active', btn.dataset.type === currentType);
     });
 
-    // Update quality dropdown for current type
+    // Update quality dropdown for current type (applies the matching default)
     populateQualities(currentType);
-
-    // Set default quality if available
-    if (settings.defaultQuality) {
-      const qualitySelect = $('#quality-select');
-      if (qualitySelect.querySelector(`option[value="${settings.defaultQuality}"]`)) {
-        qualitySelect.value = settings.defaultQuality;
-      }
-    }
   }
 
   async function loadVersion() {
@@ -138,14 +133,18 @@
     });
   }
 
+  // music.youtube.com and m.youtube.com are where songs are usually copied from
   function isValidYouTubeUrl(url) {
-    return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/|playlist\?list=)|youtu\.be\/).+/.test(url);
+    return /^(https?:\/\/)?((www|m|music)\.)?(youtube\.com\/(watch\?v=|shorts\/|playlist\?list=)|youtu\.be\/).+/i.test(url);
   }
 
-  // Must stay in sync with isPlaylistUrl() in downloader.js — a watch URL with
-  // a &list= is a single video, only /playlist?list=... is a playlist.
-  function isPlaylistUrl(url) {
+  // Must stay in sync with the helpers in downloader.js
+  function isPlaylistPageUrl(url) {
     return /youtube\.com\/playlist\?/i.test(url);
+  }
+
+  function hasPlaylistId(url) {
+    return /[?&]list=[^&#\s]+/.test(url);
   }
 
   async function fetchVideoInfo(url) {
@@ -156,38 +155,90 @@
     const thumbEl = $('#video-thumbnail');
     const badgeEl = $('#video-badge');
 
-    titleEl.textContent = isPlaylistUrl(url) ? 'Fetching playlist info...' : 'Fetching video info...';
+    // A slow request must not overwrite the result of a newer one
+    const requestId = ++fetchRequestId;
+
+    titleEl.textContent = '';
     uploaderEl.textContent = '';
     durationEl.textContent = '';
-    thumbEl.src = '';
+    setThumbnail('');
     badgeEl.classList.add('hidden');
+    hidePlaylistChoice();
     infoEl.classList.remove('hidden');
+    infoEl.classList.add('loading');
 
     const result = await window.api.getVideoInfo(url);
+    if (requestId !== fetchRequestId) return;
+
+    infoEl.classList.remove('loading');
 
     if (result.success) {
       videoInfo = result.data;
       titleEl.textContent = videoInfo.title;
       uploaderEl.textContent = videoInfo.uploader;
       durationEl.textContent = formatDuration(videoInfo.duration);
-      if (videoInfo.thumbnail) {
-        thumbEl.src = videoInfo.thumbnail;
-      }
+      setThumbnail(videoInfo.thumbnail);
+
       if (videoInfo.isPlaylist) {
-        badgeEl.textContent = `Playlist · ${videoInfo.playlistCount} videos`;
+        badgeEl.textContent = `Playlist · ${videoInfo.playlistCount} items`;
         badgeEl.classList.remove('hidden');
+      } else if (videoInfo.playlist) {
+        showPlaylistChoice(videoInfo.playlist);
       }
     } else {
-      titleEl.textContent = 'Could not fetch video info';
-      uploaderEl.textContent = result.error || '';
+      titleEl.textContent = 'Could not fetch info for this link';
+      uploaderEl.textContent = (result.error || '').split('\n')[0];
       videoInfo = null;
     }
   }
 
+  // An <img> with an empty src renders as a broken image, so the attribute is
+  // removed instead of blanked.
+  function setThumbnail(src) {
+    const thumbEl = $('#video-thumbnail');
+    if (src) {
+      thumbEl.src = src;
+      thumbEl.classList.remove('hidden');
+    } else {
+      thumbEl.removeAttribute('src');
+      thumbEl.classList.add('hidden');
+    }
+  }
+
   function hideVideoInfo() {
+    fetchRequestId++;
     $('#url-info').classList.add('hidden');
+    $('#url-info').classList.remove('loading');
     $('#video-badge').classList.add('hidden');
+    setThumbnail('');
+    hidePlaylistChoice();
     videoInfo = null;
+  }
+
+  // ── Playlist scope choice ─────────────────────────────────────────
+  function showPlaylistChoice(playlist) {
+    $('#playlist-choice-title').textContent = playlist.title;
+    $('#playlist-choice-count').textContent = `${playlist.count} items`;
+    setPlaylistScope('single');
+    $('#playlist-choice').classList.remove('hidden');
+  }
+
+  function hidePlaylistChoice() {
+    $('#playlist-choice').classList.add('hidden');
+    playlistScope = 'single';
+  }
+
+  function setPlaylistScope(scope) {
+    playlistScope = scope;
+    $$('.scope-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.scope === scope);
+    });
+  }
+
+  function setupPlaylistChoice() {
+    $$('.scope-btn').forEach(btn => {
+      btn.addEventListener('click', () => setPlaylistScope(btn.dataset.scope));
+    });
   }
 
   function formatDuration(seconds) {
@@ -228,10 +279,15 @@
       select.appendChild(opt);
     });
 
-    // Set default
-    if (type === 'video' && settings.defaultQuality) {
-      select.value = settings.defaultQuality;
-    }
+    selectIfPresent(select, type === 'audio' ? settings.defaultAudioQuality : settings.defaultQuality);
+  }
+
+  // Assigning a value with no matching <option> leaves the select blank
+  // (selectedIndex -1), so only assign what actually exists.
+  function selectIfPresent(select, value) {
+    if (!value) return;
+    const match = [...select.options].some(o => o.value === String(value));
+    if (match) select.value = value;
   }
 
   // ── Save Location ─────────────────────────────────────────────────
@@ -357,7 +413,10 @@
       url: url,
       type: currentType,
       quality: $('#quality-select').value,
-      savePath: settings.savePath
+      savePath: settings.savePath,
+      // A /playlist? URL is always the whole list; a watch URL follows the
+      // choice the user made in the UI.
+      playlist: isPlaylistPageUrl(url) || (hasPlaylistId(url) && playlistScope === 'playlist')
     };
 
     const result = await window.api.startDownload(options);
@@ -524,14 +583,22 @@
       }
     });
 
-    // Default quality
+    // Default video quality
     const defaultQualitySelect = $('#default-quality-select');
-    if (settings.defaultQuality) {
-      defaultQualitySelect.value = settings.defaultQuality;
-    }
+    selectIfPresent(defaultQualitySelect, settings.defaultQuality);
     defaultQualitySelect.addEventListener('change', async () => {
       settings.defaultQuality = defaultQualitySelect.value;
       await window.api.setSettings(settings);
+      if (currentType === 'video') populateQualities('video');
+    });
+
+    // Default audio quality
+    const defaultAudioQualitySelect = $('#default-audio-quality-select');
+    selectIfPresent(defaultAudioQualitySelect, settings.defaultAudioQuality);
+    defaultAudioQualitySelect.addEventListener('change', async () => {
+      settings.defaultAudioQuality = defaultAudioQualitySelect.value;
+      await window.api.setSettings(settings);
+      if (currentType === 'audio') populateQualities('audio');
     });
 
     // Default type

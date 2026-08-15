@@ -2,11 +2,16 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 // ── URL helpers ─────────────────────────────────────────────────────
-// Only a /playlist?list=... URL means "download the whole playlist".
-// A /watch?v=...&list=... URL keeps its playlist context but is treated as a
-// single video, which is what pasting a watch link almost always means.
-function isPlaylistUrl(url) {
+// A /playlist?list=... URL is nothing but a playlist. A watch URL that carries
+// a &list=... could go either way, so the renderer asks the user and sends an
+// explicit flag — these helpers only describe the URL, they don't decide.
+function isPlaylistPageUrl(url) {
   return /youtube\.com\/playlist\?/i.test(url);
+}
+
+function getPlaylistId(url) {
+  const match = String(url).match(/[?&]list=([^&#\s]+)/);
+  return match ? match[1] : null;
 }
 
 // yt-dlp errors arrive as raw stderr chunks that also carry progress noise and,
@@ -43,17 +48,11 @@ function createDownloader(getBinPath) {
     return path.dirname(getBinPath('ffmpeg.exe'));
   }
 
-  async function getInfo(url) {
+  // Runs yt-dlp for its JSON output. Rejects with a cleaned message so the
+  // renderer never shows a raw stderr dump.
+  function runJson(args) {
     return new Promise((resolve, reject) => {
-      const ytdlp = getYtdlpPath();
-      const playlist = isPlaylistUrl(url);
-
-      // --flat-playlist keeps this fast: entry metadata only, no per-video fetch.
-      const args = playlist
-        ? ['--dump-single-json', '--flat-playlist', '--no-warnings', url]
-        : ['--dump-json', '--no-download', '--no-warnings', '--no-playlist', url];
-
-      const proc = spawn(ytdlp, args, {
+      const proc = spawn(getYtdlpPath(), args, {
         windowsHide: true,
         env: { ...process.env, PATH: getFfmpegPath() + ';' + process.env.PATH }
       });
@@ -71,50 +70,11 @@ function createDownloader(getBinPath) {
 
       proc.on('close', (code) => {
         if (code !== 0) {
-          reject(new Error(stderr || `yt-dlp exited with code ${code}`));
+          reject(new Error(cleanError(stderr) || `yt-dlp exited with code ${code}`));
           return;
         }
-
         try {
-          const info = JSON.parse(stdout);
-
-          if (info._type === 'playlist') {
-            const entries = (info.entries || []).filter(Boolean);
-            resolve({
-              isPlaylist: true,
-              title: info.title || 'Untitled Playlist',
-              thumbnail: pickThumbnail(entries[0]),
-              duration: entries.reduce((sum, e) => sum + (e.duration || 0), 0),
-              uploader: info.uploader || info.channel || 'Unknown',
-              videoQualities: [],
-              playlistCount: entries.length,
-              id: info.id
-            });
-            return;
-          }
-
-          const formats = info.formats || [];
-
-          // Extract available video resolutions
-          const videoQualities = new Set();
-          formats.forEach(f => {
-            if (f.height && f.vcodec !== 'none') {
-              videoQualities.add(f.height);
-            }
-          });
-
-          const sortedQualities = [...videoQualities].sort((a, b) => b - a);
-
-          resolve({
-            isPlaylist: false,
-            title: info.title || 'Unknown Title',
-            thumbnail: info.thumbnail || '',
-            duration: info.duration || 0,
-            uploader: info.uploader || 'Unknown',
-            videoQualities: sortedQualities,
-            playlistCount: 1,
-            id: info.id
-          });
+          resolve(JSON.parse(stdout));
         } catch (e) {
           reject(new Error('Failed to parse video information'));
         }
@@ -126,10 +86,78 @@ function createDownloader(getBinPath) {
     });
   }
 
+  // --flat-playlist keeps this fast: entry metadata only, no per-video fetch.
+  // --yes-playlist is required for watch?v=…&list=… to resolve to the list.
+  async function fetchPlaylistInfo(url) {
+    const info = await runJson([
+      '--dump-single-json', '--flat-playlist', '--yes-playlist', '--no-warnings', url
+    ]);
+    const entries = (info.entries || []).filter(Boolean);
+    return {
+      isPlaylist: true,
+      title: info.title || 'Untitled Playlist',
+      thumbnail: pickThumbnail(entries[0]),
+      duration: entries.reduce((sum, e) => sum + (e.duration || 0), 0),
+      uploader: info.uploader || info.channel || 'Unknown',
+      videoQualities: [],
+      playlistCount: entries.length,
+      id: info.id
+    };
+  }
+
+  async function fetchVideoInfo(url) {
+    const info = await runJson([
+      '--dump-json', '--no-download', '--no-warnings', '--no-playlist', url
+    ]);
+
+    // Extract available video resolutions
+    const videoQualities = new Set();
+    (info.formats || []).forEach(f => {
+      if (f.height && f.vcodec !== 'none') {
+        videoQualities.add(f.height);
+      }
+    });
+
+    return {
+      isPlaylist: false,
+      title: info.title || 'Unknown Title',
+      thumbnail: info.thumbnail || '',
+      duration: info.duration || 0,
+      uploader: info.uploader || 'Unknown',
+      videoQualities: [...videoQualities].sort((a, b) => b - a),
+      playlistCount: 1,
+      playlist: null,
+      id: info.id
+    };
+  }
+
+  async function getInfo(url) {
+    if (isPlaylistPageUrl(url)) {
+      return fetchPlaylistInfo(url);
+    }
+
+    // A watch URL may still belong to a playlist. Probe both at once so the UI
+    // can offer "this one" vs "all of them" without a second round trip.
+    const listId = getPlaylistId(url);
+    const [video, playlist] = await Promise.all([
+      fetchVideoInfo(url),
+      listId ? fetchPlaylistInfo(url).catch(() => null) : Promise.resolve(null)
+    ]);
+
+    if (playlist && playlist.playlistCount > 0) {
+      video.playlist = { title: playlist.title, count: playlist.playlistCount };
+    }
+    return video;
+  }
+
   function download(options, callbacks) {
     const { url, type, quality, savePath } = options;
     const ytdlp = getYtdlpPath();
-    const playlist = isPlaylistUrl(url);
+    // The renderer decides for watch URLs that carry a &list=; a bare
+    // /playlist? URL has nothing else it could mean.
+    const playlist = typeof options.playlist === 'boolean'
+      ? options.playlist
+      : isPlaylistPageUrl(url);
 
     // Playlists go into their own folder, numbered in playlist order.
     const outputTemplate = playlist
@@ -358,7 +386,7 @@ function createDownloader(getBinPath) {
     }
   }
 
-  return { getInfo, download, cancel, isPlaylistUrl };
+  return { getInfo, download, cancel, isPlaylistPageUrl, getPlaylistId };
 }
 
-module.exports = { createDownloader, isPlaylistUrl };
+module.exports = { createDownloader, isPlaylistPageUrl, getPlaylistId };

@@ -24,6 +24,17 @@ The progress bar will show real-time download progress including speed and estim
 
 The audio will be saved as an MP3 file.
 
+## Downloading a Song
+
+YouTube Music links work exactly like normal ones — copy the address of the song
+(`music.youtube.com/watch?v=...`), paste it, pick **Audio** and download.
+
+If the song was opened from inside a playlist or album, the link also carries
+the playlist. YTCD notices this and asks what you want:
+
+- **Only this one** — just that song (this is the default)
+- **All N items** — the whole playlist or album
+
 ## Downloading a Playlist
 
 1. Open the playlist on YouTube and copy the URL from the address bar — it must
@@ -42,8 +53,8 @@ If a video in the playlist is private, blocked or otherwise unavailable, it is
 skipped and the rest keep going. When the download ends you are told how many
 items were saved and how many were skipped.
 
-> A `youtube.com/watch?v=...&list=...` link downloads only that single video. If
-> you want the whole playlist, use the `playlist?list=` URL.
+> You can also paste a `watch?v=...&list=...` link and pick **All N items** —
+> the result is the same.
 
 ## Choosing Quality
 
@@ -106,7 +117,8 @@ A playlist that finished but skipped some videos shows the same panel labelled
 
 Access **Settings** from the sidebar to configure:
 - **Default Save Location** — Where downloads are saved by default
-- **Default Video Quality** — Pre-selected quality when the app opens
+- **Default Video Quality** — Pre-selected quality in Video mode
+- **Default Audio Quality** — Pre-selected bitrate in Audio mode
 - **Default Format** — Start with Video or Audio mode
 - **Auto-check for Updates** — Automatically check for new versions on startup
 - **Desktop Notifications** — Show a Windows notification when a download

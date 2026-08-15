@@ -4,11 +4,14 @@
 
 ### 1.1 URL Input
 - Accept YouTube video URLs (`youtube.com/watch?v=`, `youtu.be/`)
+- Accept YouTube Music URLs (`music.youtube.com/watch?v=`) and mobile (`m.youtube.com`)
 - Accept YouTube Shorts URLs (`youtube.com/shorts/`)
 - Accept YouTube Playlist URLs (`youtube.com/playlist?list=`)
 - Validate URL format before processing
 - Paste from clipboard button
 - Auto-fetch video information (title, thumbnail, uploader, duration) when a valid URL is entered
+- While fetching, show a loading skeleton in place of the thumbnail and text —
+  never a broken image
 - Playlist URLs show the playlist title, video count and total duration instead
 
 ### 1.2 Content Type Selection
@@ -17,8 +20,10 @@
 - Audio mode: extracts and converts audio to MP3
 
 ### 1.2.1 Playlists
-- Only a `youtube.com/playlist?list=...` URL downloads a whole playlist. A
-  `watch?v=...&list=...` URL downloads just that one video.
+- A `youtube.com/playlist?list=...` URL always downloads the whole playlist
+- A `watch?v=...&list=...` URL (a song or video opened from within a playlist)
+  is detected: the app shows the playlist name and offers **Only this one** or
+  **All N items**, defaulting to the single item
 - Playlist items are saved to `<save location>/<playlist title>/` and named
   `<index> - <title>.<ext>`
 - The selected quality/format applies to every item
@@ -73,6 +78,7 @@
 ### 1.7 Settings
 - Default save location
 - Default video quality
+- Default audio quality
 - Default format (video/audio)
 - Auto-update toggle
 - Desktop notifications toggle — a Windows toast on download completion or

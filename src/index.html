@@ -96,12 +96,30 @@
             </button>
           </div>
           <div id="url-info" class="url-info hidden">
-            <img id="video-thumbnail" src="" alt="" class="video-thumb">
+            <div class="video-thumb-wrap">
+              <!-- no src until one is known: an empty src renders a broken image -->
+              <img id="video-thumbnail" alt="" class="video-thumb hidden">
+            </div>
             <div class="video-meta">
               <span id="video-title" class="video-title"></span>
               <span id="video-uploader" class="video-uploader"></span>
               <span id="video-duration" class="video-duration"></span>
               <span id="video-badge" class="badge hidden"></span>
+            </div>
+          </div>
+
+          <!-- Shown when a watch URL also carries a &list=... -->
+          <div id="playlist-choice" class="playlist-choice hidden">
+            <div class="playlist-choice-info">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              <span>Part of playlist <strong id="playlist-choice-title"></strong></span>
+            </div>
+            <div class="playlist-choice-btns">
+              <button class="scope-btn active" data-scope="single">Only this one</button>
+              <button class="scope-btn" data-scope="playlist">All <span id="playlist-choice-count"></span></button>
             </div>
           </div>
         </div>
@@ -233,6 +251,19 @@
               <option value="720">720p (HD)</option>
               <option value="480">480p</option>
               <option value="360">360p</option>
+            </select>
+          </div>
+
+          <div class="setting-item" id="setting-default-audio-quality">
+            <div class="setting-info">
+              <label>Default Audio Quality</label>
+            </div>
+            <select id="default-audio-quality-select" class="setting-select">
+              <option value="best" selected>Best Quality</option>
+              <option value="320">320 kbps</option>
+              <option value="256">256 kbps</option>
+              <option value="192">192 kbps</option>
+              <option value="128">128 kbps</option>
             </select>
           </div>
 

@@ -16,6 +16,12 @@
   100% { transform: translateX(100%); }
 }
 
+/* ── Skeleton sweep (loading placeholders) ───────────────────────── */
+@keyframes skeletonSweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ── Pulse (active download indicator) ───────────────────────────── */
 @keyframes pulse {
   0%, 100% { opacity: 1; }

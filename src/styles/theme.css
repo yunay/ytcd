@@ -8,6 +8,9 @@
   --bg-input: rgba(255, 255, 255, 0.05);
   --bg-input-focus: rgba(255, 255, 255, 0.08);
   --bg-sidebar: #101014;
+  /* loading placeholders — need real contrast against --bg-card */
+  --bg-skeleton: #1e1e26;
+  --bg-skeleton-highlight: #2c2c38;
 
   /* ── Text palette ─────────────────────────── */
   --text-primary: #e8e8ed;

@@ -55,9 +55,16 @@ Channel naming is `domain:action` (`download:start`, `settings:get`). Main→ren
 
 ## Playlists
 
-`isPlaylistUrl()` — defined in [src/downloader.js](src/downloader.js) and **mirrored in [src/renderer.js](src/renderer.js)**, keep the two in sync — treats only a `youtube.com/playlist?` URL as a playlist. A `watch?v=…&list=…` URL is a single video and gets `--no-playlist`, so pasting a watch link never drags in 200 other videos.
+**The downloader does not guess.** `download()` takes an explicit `options.playlist` boolean; the URL is only consulted as a fallback (`isPlaylistPageUrl`). The renderer decides:
+
+- `youtube.com/playlist?list=…` → always the whole list.
+- `watch?v=…&list=…` → `getInfo()` probes the list too and returns `playlist: { title, count }` alongside the video. The renderer shows the **Only this one / All N items** choice (`#playlist-choice`, default *single*) and sends the answer.
+
+URL helpers are duplicated in [src/downloader.js](src/downloader.js) and [src/renderer.js](src/renderer.js) (`isPlaylistPageUrl`, `getPlaylistId`/`hasPlaylistId`) — keep them in sync. `isValidYouTubeUrl` accepts the `www`, `m` and `music` subdomains; music.youtube.com links are ordinary watch URLs to yt-dlp.
 
 Playlist mode changes four things: the output template (`<playlist title>/<index> - <title>.<ext>`), `--yes-playlist --ignore-errors`, progress carries `playlistIndex`/`playlistCount`/`overallPercent` (the bar shows overall, the badge shows the item), and the close handler judges success by item count rather than exit code — yt-dlp exits non-zero when *any* item failed, so a 19-of-20 run must not be reported as a failure.
+
+`getInfo()` fires the video probe and the playlist probe concurrently; a failing playlist probe is swallowed so a normal video still resolves.
 
 ## Gotchas
 
@@ -70,6 +77,8 @@ Playlist mode changes four things: the output template (`<playlist title>/<index
 - `update:install` is registered in main.js **unconditionally** and returns `{ success, error }`; `installUpdate()` in [src/updater.js](src/updater.js) answers with an explanation when no updater is running (dev builds, auto-update off) instead of leaving the channel unregistered.
 - **Windows toasts need `app.setAppUserModelId('com.ytcd.app')`** — it must match `build.appId` in package.json or notifications silently never appear.
 - Settings and history live in `app.getPath('userData')` (`%APPDATA%/YTCD/`), not in the repo — deleting the repo doesn't reset app state. History is capped at 100 entries.
+- **`loadSettings()` merges over `defaultSettings()`**, so a new key is picked up by existing installs instead of arriving `undefined`. It also strips a trailing `p` from `defaultQuality` — older builds stored `'1080p'` while the `<option>` values are bare numbers, and **assigning a `<select>` a value with no matching option silently blanks it** (`selectedIndex` -1). Use `selectIfPresent()` in renderer.js rather than assigning `.value` directly.
+- **An `<img>` with `src=""` renders as a broken image.** `setThumbnail('')` removes the attribute instead. The `.url-info.loading` skeleton uses `--bg-skeleton`/`--bg-skeleton-highlight`; don't build placeholders out of `--bg-input`/`--bg-card-hover`, which are the same value and produce a flat, invisible gradient.
 - **Windows-only** by design: `.exe` binary names, `taskkill`/PowerShell in [scripts/clean-dist.js](scripts/clean-dist.js), NSIS-only build target.
 - `npm run build:win` kills running `electron.exe`/`YTCD.exe` before cleaning `dist/`. If the build fails on a locked `app.asar`, run `npm run find-lock` to see which process is holding it.
 - **[scripts/find-lock.ps1](scripts/find-lock.ps1) must stay ASCII-only** — Windows PowerShell 5.1 reads a BOM-less script as ANSI and any non-ASCII character (an em dash in a comment is enough) breaks parsing.
