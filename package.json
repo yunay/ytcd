@@ -1,6 +1,6 @@
 {
   "name": "ytcd",
-  "version": "1.0.0",
+  "version": "1.0.7",
   "description": "YouTube Content Downloader - Download videos and audio from YouTube",
   "main": "src/main.js",
   "author": "YTCD",
@@ -41,11 +41,15 @@
       {
         "from": "bin/",
         "to": "bin/",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "src/assets/icon.ico"
     },
     "nsis": {
