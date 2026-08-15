@@ -1,9 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, clipboard, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, clipboard, shell, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
 const { createDownloader } = require('./downloader');
-const { initUpdater } = require('./updater');
+const { initUpdater, installUpdate } = require('./updater');
 
 let mainWindow;
 let currentDownloadProcess = null;
@@ -54,8 +53,26 @@ function saveHistory(history) {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
 }
 
+// ── Desktop notifications ───────────────────────────────────────────
+// Windows only shows toasts for an app with a registered AppUserModelID —
+// it must match the `appId` in package.json > build.
+function notify(title, body, filePath) {
+  if (loadSettings().notifications === false) return;
+  if (!Notification.isSupported()) return;
+
+  const notification = new Notification({ title, body, silent: false });
+
+  if (filePath) {
+    notification.on('click', () => {
+      if (fs.existsSync(filePath)) shell.showItemInFolder(filePath);
+    });
+  }
+
+  notification.show();
+}
+
 // ── Window creation ─────────────────────────────────────────────────
-function createWindow() {
+function createWindow(settings) {
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 750,
@@ -75,7 +92,14 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+    if (settings?.startMinimized) {
+      // showInactive() first: minimize() alone on a never-shown window does not
+      // reliably put it in the taskbar.
+      mainWindow.showInactive();
+      mainWindow.minimize();
+    } else {
+      mainWindow.show();
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -190,10 +214,17 @@ ipcMain.handle('download:start', async (_, options) => {
       onComplete: (result) => {
         currentDownloadProcess = null;
         mainWindow?.webContents.send('download:complete', result);
+
+        const body = result.isPlaylist
+          ? `${result.filename} — ${result.itemCount} item(s)` +
+            (result.skippedCount ? `, ${result.skippedCount} skipped` : '')
+          : result.filename;
+        notify('Download complete', body, result.filePath);
       },
       onError: (error) => {
         currentDownloadProcess = null;
         mainWindow?.webContents.send('download:error', { message: error });
+        notify('Download failed', String(error).split('\n')[0]);
       }
     });
     return { success: true };
@@ -211,11 +242,20 @@ ipcMain.handle('download:cancel', () => {
   return false;
 });
 
+// ── Updater ─────────────────────────────────────────────────────────
+// Registered unconditionally: initUpdater() no-ops in dev and when auto-update
+// is off, and installUpdate() reports that instead of leaving the channel
+// missing.
+ipcMain.handle('update:install', () => installUpdate());
+
 // ── App lifecycle ───────────────────────────────────────────────────
 app.whenReady().then(() => {
-  createWindow();
+  // Required for Windows notifications; must match build.appId.
+  app.setAppUserModelId('com.ytcd.app');
 
   const settings = loadSettings();
+  createWindow(settings);
+
   if (settings.autoUpdate) {
     initUpdater(mainWindow);
   }

@@ -142,17 +142,25 @@
     return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/|playlist\?list=)|youtu\.be\/).+/.test(url);
   }
 
+  // Must stay in sync with isPlaylistUrl() in downloader.js — a watch URL with
+  // a &list= is a single video, only /playlist?list=... is a playlist.
+  function isPlaylistUrl(url) {
+    return /youtube\.com\/playlist\?/i.test(url);
+  }
+
   async function fetchVideoInfo(url) {
     const infoEl = $('#url-info');
     const titleEl = $('#video-title');
     const uploaderEl = $('#video-uploader');
     const durationEl = $('#video-duration');
     const thumbEl = $('#video-thumbnail');
+    const badgeEl = $('#video-badge');
 
-    titleEl.textContent = 'Fetching video info...';
+    titleEl.textContent = isPlaylistUrl(url) ? 'Fetching playlist info...' : 'Fetching video info...';
     uploaderEl.textContent = '';
     durationEl.textContent = '';
     thumbEl.src = '';
+    badgeEl.classList.add('hidden');
     infoEl.classList.remove('hidden');
 
     const result = await window.api.getVideoInfo(url);
@@ -165,6 +173,10 @@
       if (videoInfo.thumbnail) {
         thumbEl.src = videoInfo.thumbnail;
       }
+      if (videoInfo.isPlaylist) {
+        badgeEl.textContent = `Playlist · ${videoInfo.playlistCount} videos`;
+        badgeEl.classList.remove('hidden');
+      }
     } else {
       titleEl.textContent = 'Could not fetch video info';
       uploaderEl.textContent = result.error || '';
@@ -174,6 +186,7 @@
 
   function hideVideoInfo() {
     $('#url-info').classList.add('hidden');
+    $('#video-badge').classList.add('hidden');
     videoInfo = null;
   }
 
@@ -245,12 +258,22 @@
 
     // Listen for progress events
     window.api.onDownloadProgress((data) => {
-      $('#progress-bar-fill').style.width = `${data.percent}%`;
-      $('#progress-percent').textContent = `${Math.round(data.percent)}%`;
+      // For playlists the bar tracks the whole run, not the current item.
+      const barPercent = data.overallPercent ?? data.percent;
+      $('#progress-bar-fill').style.width = `${barPercent}%`;
+      $('#progress-percent').textContent = `${Math.round(barPercent)}%`;
       $('#progress-speed').textContent = data.speed || '---';
       $('#progress-eta').textContent = data.eta || '---';
       if (data.filename) {
         $('#progress-title').textContent = data.filename;
+      }
+
+      const itemEl = $('#progress-item');
+      if (data.playlistCount) {
+        itemEl.textContent = `${data.playlistIndex} / ${data.playlistCount}`;
+        itemEl.classList.remove('hidden');
+      } else {
+        itemEl.classList.add('hidden');
       }
     });
 
@@ -265,27 +288,42 @@
         quality: $('#quality-select').value,
         filePath: data.filePath,
         folderPath: data.savePath,
-        status: 'success'
+        status: 'success',
+        isPlaylist: !!data.isPlaylist,
+        itemCount: data.itemCount || 1,
+        // A partly downloaded playlist keeps the reasons its items were skipped
+        error: (data.errors || []).join('\n') || ''
       });
 
-      showToast('Download completed successfully!', 'success');
+      if (data.isPlaylist && data.skippedCount) {
+        showToast(`Downloaded ${data.itemCount} item(s), ${data.skippedCount} skipped`, 'warning');
+      } else if (data.isPlaylist) {
+        showToast(`Playlist downloaded — ${data.itemCount} item(s)`, 'success');
+      } else {
+        showToast('Download completed successfully!', 'success');
+      }
     });
 
     window.api.onDownloadError(async (data) => {
       isDownloading = false;
       resetDownloadUI();
 
-      // Add failed entry to history
+      const message = data.message || 'Download failed';
+
+      // Add failed entry to history, keeping the reason — the toast is gone in
+      // four seconds, the history entry is the only lasting record.
       await window.api.addToHistory({
         title: videoInfo?.title || 'Unknown',
         type: currentType,
         quality: $('#quality-select').value,
         filePath: '',
         folderPath: settings.savePath,
-        status: 'failed'
+        status: 'failed',
+        error: message
       });
 
-      showToast(data.message || 'Download failed', 'error');
+      // Long yt-dlp errors stay readable: first line here, full text in history
+      showToast(message.split('\n')[0], 'error');
     });
   }
 
@@ -313,6 +351,7 @@
     $('#progress-speed').textContent = '---';
     $('#progress-eta').textContent = '---';
     $('#progress-title').textContent = 'Starting download...';
+    $('#progress-item').classList.add('hidden');
 
     const options = {
       url: url,
@@ -380,28 +419,55 @@
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
+    const playlistIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
+    const videoIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>';
+    const audioIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+
+    const meta = [
+      date,
+      escapeHtml(item.quality || ''),
+      isVideo ? 'Video' : 'Audio',
+      item.isPlaylist ? `Playlist · ${Number(item.itemCount) || 0} items` : ''
+    ].filter(Boolean).join(' &middot; ');
+
+    const failed = item.status !== 'success';
+    // Failures carry the reason; a successful playlist carries it only when
+    // some of its items were skipped.
+    const details = (item.error || '').trim();
+    const detailsLabel = failed ? 'Error details' : 'Skipped items';
+
     div.innerHTML = `
-      <div class="download-item-icon ${isVideo ? 'video' : 'audio'}">
-        ${isVideo
-          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>'
-          : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'
-        }
+      <div class="download-item-row">
+        <div class="download-item-icon ${isVideo ? 'video' : 'audio'}">
+          ${item.isPlaylist ? playlistIcon : (isVideo ? videoIcon : audioIcon)}
+        </div>
+        <div class="download-item-info">
+          <div class="download-item-title">${escapeHtml(item.title)}</div>
+          <div class="download-item-meta">${meta}</div>
+        </div>
+        <span class="download-item-status ${item.status}">${failed ? 'Failed' : 'Done'}</span>
+        <div class="download-item-actions">
+          ${details ? `
+            <button class="details-btn" title="${escapeAttr(detailsLabel)}" aria-expanded="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          ` : ''}
+          ${!failed ? `
+            <button class="open-file-btn" title="Open file" data-path="${escapeAttr(item.filePath)}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </button>
+            <button class="open-folder-btn" title="Open folder" data-path="${escapeAttr(item.folderPath)}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            </button>
+          ` : ''}
+        </div>
       </div>
-      <div class="download-item-info">
-        <div class="download-item-title">${escapeHtml(item.title)}</div>
-        <div class="download-item-meta">${date} &middot; ${item.quality || ''} &middot; ${isVideo ? 'Video' : 'Audio'}</div>
-      </div>
-      <span class="download-item-status ${item.status}">${item.status === 'success' ? 'Done' : 'Failed'}</span>
-      <div class="download-item-actions">
-        ${item.status === 'success' ? `
-          <button class="open-file-btn" title="Open file" data-path="${escapeAttr(item.filePath)}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </button>
-          <button class="open-folder-btn" title="Open folder" data-path="${escapeAttr(item.folderPath)}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-          </button>
-        ` : ''}
-      </div>
+      ${details ? `
+        <div class="download-item-details ${failed ? '' : 'warning'} hidden">
+          <span class="download-item-details-label">${escapeHtml(detailsLabel)}</span>
+          <pre class="download-item-details-text">${escapeHtml(details)}</pre>
+        </div>
+      ` : ''}
     `;
 
     // Attach event listeners
@@ -416,6 +482,16 @@
     if (openFolderBtn) {
       openFolderBtn.addEventListener('click', () => {
         window.api.openPath(item.folderPath);
+      });
+    }
+
+    const detailsBtn = div.querySelector('.details-btn');
+    const detailsBox = div.querySelector('.download-item-details');
+    if (detailsBtn && detailsBox) {
+      detailsBtn.addEventListener('click', () => {
+        const shown = !detailsBox.classList.toggle('hidden');
+        detailsBtn.classList.toggle('expanded', shown);
+        detailsBtn.setAttribute('aria-expanded', String(shown));
       });
     }
 
@@ -483,6 +559,14 @@
       settings.notifications = notificationsToggle.checked;
       await window.api.setSettings(settings);
     });
+
+    // Start minimized toggle — applies on the next app start
+    const startMinimizedToggle = $('#start-minimized-toggle');
+    startMinimizedToggle.checked = settings.startMinimized === true;
+    startMinimizedToggle.addEventListener('change', async () => {
+      settings.startMinimized = startMinimizedToggle.checked;
+      await window.api.setSettings(settings);
+    });
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────
@@ -516,15 +600,15 @@
     });
 
     window.api.onUpdateDownloaded(() => {
-      const updateBtn = $('#update-btn');
-      updateBtn.textContent = 'Restart & Update';
-      updateBtn.addEventListener('click', () => {
-        window.api.installUpdate();
-      });
+      // Only relabel — the click handler below is already attached.
+      $('#update-btn').textContent = 'Restart & Update';
     });
 
-    $('#update-btn').addEventListener('click', () => {
-      window.api.installUpdate();
+    $('#update-btn').addEventListener('click', async () => {
+      const result = await window.api.installUpdate();
+      if (result && !result.success) {
+        showToast(result.error || 'Update failed', 'error');
+      }
     });
 
     $('#dismiss-update').addEventListener('click', () => {

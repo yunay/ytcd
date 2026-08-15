@@ -10,7 +10,8 @@
     "setup": "node scripts/setup.js",
     "prebuild": "node scripts/clean-dist.js",
     "build": "electron-builder",
-    "build:win": "node scripts/clean-dist.js && electron-builder --win"
+    "build:win": "node scripts/clean-dist.js && electron-builder --win",
+    "find-lock": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/find-lock.ps1"
   },
   "dependencies": {
     "electron-updater": "^6.1.0"

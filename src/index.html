@@ -101,6 +101,7 @@
               <span id="video-title" class="video-title"></span>
               <span id="video-uploader" class="video-uploader"></span>
               <span id="video-duration" class="video-duration"></span>
+              <span id="video-badge" class="badge hidden"></span>
             </div>
           </div>
         </div>
@@ -167,7 +168,10 @@
           </button>
 
           <div id="progress-container" class="hidden">
-            <span id="progress-title" class="progress-title">Downloading...</span>
+            <div class="progress-head">
+              <span id="progress-item" class="badge hidden"></span>
+              <span id="progress-title" class="progress-title">Downloading...</span>
+            </div>
             <div id="progress-bar-track">
               <div id="progress-bar-fill"></div>
             </div>
@@ -264,6 +268,17 @@
             </div>
             <label class="toggle">
               <input type="checkbox" id="notifications-toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item" id="setting-start-minimized">
+            <div class="setting-info">
+              <label>Start Minimized</label>
+              <span class="setting-desc">Open the app minimized to the taskbar</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="start-minimized-toggle">
               <span class="toggle-slider"></span>
             </label>
           </div>

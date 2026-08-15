@@ -5,10 +5,12 @@ A modern desktop application for downloading videos and audio from YouTube with 
 ## Features
 
 - **Video & Audio Downloads** — Download YouTube content as MP4 video or MP3 audio
+- **Playlists** — Download a whole playlist into its own numbered folder
 - **Quality Selection** — Choose from available resolutions (up to 4K) or audio bitrates
 - **Custom Save Location** — Pick where to save your downloads with a folder browser
 - **Download Progress** — Real-time progress bar with speed and ETA display
 - **Download History** — Track all your past downloads with quick access to files
+- **Desktop Notifications** — Windows toast when a download finishes or fails
 - **Auto-Updates** — The app checks for updates and installs them seamlessly
 - **Keyboard Shortcuts** — Ctrl+V to paste, Ctrl+D to download, Escape to cancel
 - **Modern UI** — Clean dark theme with smooth animations
@@ -73,7 +75,9 @@ ytcd/
 │   └── assets/
 │       └── icon.ico       # App icon
 ├── scripts/
-│   └── setup.js         # Downloads yt-dlp & ffmpeg
+│   ├── setup.js         # Downloads yt-dlp & ffmpeg
+│   ├── clean-dist.js    # Clears dist/ before a build
+│   └── find-lock.ps1    # npm run find-lock — who is locking dist/?
 ├── bin/                  # yt-dlp & ffmpeg binaries (gitignored)
 ├── docs/
 │   ├── README.md

@@ -251,6 +251,19 @@
   color: var(--text-secondary);
 }
 
+/* ── Badge ───────────────────────────────────────────────────────── */
+.badge {
+  align-self: flex-start;
+  padding: 2px var(--space-sm);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-full);
+  background: var(--color-info-bg);
+  color: var(--accent-start);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    OPTIONS
    ══════════════════════════════════════════════════════════════════ */
@@ -434,11 +447,18 @@
   animation: fadeIn var(--transition-base);
 }
 
+.progress-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
 .progress-title {
-  display: block;
+  flex: 1;
+  min-width: 0; /* let the flex child shrink so the ellipsis works */
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  margin-bottom: var(--space-md);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -504,9 +524,6 @@
    HISTORY
    ══════════════════════════════════════════════════════════════════ */
 .download-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
   padding: var(--space-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -514,6 +531,12 @@
   margin-bottom: var(--space-sm);
   transition: all var(--transition-fast);
   animation: fadeIn var(--transition-base);
+}
+
+.download-item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
 }
 .download-item:hover {
   background: var(--bg-card-hover);
@@ -596,6 +619,57 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
   border-color: var(--border-medium);
+}
+
+/* ── Collapsible error / skipped details ─────────────────────────── */
+.details-btn svg {
+  transition: transform var(--transition-fast);
+}
+.details-btn.expanded svg {
+  transform: rotate(180deg);
+}
+
+.download-item-details {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-error-bg);
+  border-left: 2px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  animation: fadeIn var(--transition-fast);
+}
+
+/* Skipped items on an otherwise successful playlist are a warning, not a failure */
+.download-item-details.warning {
+  background: var(--color-warning-bg);
+  border-left-color: var(--color-warning);
+}
+.download-item-details.warning .download-item-details-label {
+  color: var(--color-warning);
+}
+
+.download-item-details-label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-error);
+}
+
+.download-item-details-text {
+  margin: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* main.css disables selection app-wide; an error must stay copyable */
+  user-select: text;
+  cursor: text;
 }
 
 /* ══════════════════════════════════════════════════════════════════

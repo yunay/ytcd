@@ -9,11 +9,21 @@
 - Validate URL format before processing
 - Paste from clipboard button
 - Auto-fetch video information (title, thumbnail, uploader, duration) when a valid URL is entered
+- Playlist URLs show the playlist title, video count and total duration instead
 
 ### 1.2 Content Type Selection
 - Toggle between **Video** and **Audio** download modes
 - Video mode: downloads video + audio merged as MP4
 - Audio mode: extracts and converts audio to MP3
+
+### 1.2.1 Playlists
+- Only a `youtube.com/playlist?list=...` URL downloads a whole playlist. A
+  `watch?v=...&list=...` URL downloads just that one video.
+- Playlist items are saved to `<save location>/<playlist title>/` and named
+  `<index> - <title>.<ext>`
+- The selected quality/format applies to every item
+- A blocked, private or otherwise failing item is skipped and the rest continue;
+  the number of skipped items is reported when the download finishes
 
 ### 1.3 Quality Selection
 **Video qualities:**
@@ -46,12 +56,17 @@
 - Download speed display
 - ETA (estimated time remaining)
 - Current filename display
+- For playlists: current item badge (`3 / 12`); the bar tracks the whole playlist
 - Cancel button to abort download
 
 ### 1.6 Download History
 - List of all completed and failed downloads
 - Each entry shows: title, date, quality, type, status
-- Open downloaded file directly
+- Playlist entries are marked as such and show the item count
+- A failed entry stores the yt-dlp error text and exposes it through a
+  collapsible **Error details** panel; a playlist that finished with skipped
+  items shows the same panel as **Skipped items**
+- Open downloaded file directly (playlist entries open the playlist folder)
 - Open containing folder
 - Clear all history
 
@@ -60,7 +75,9 @@
 - Default video quality
 - Default format (video/audio)
 - Auto-update toggle
-- Desktop notifications toggle
+- Desktop notifications toggle — a Windows toast on download completion or
+  failure; clicking it reveals the file in Explorer
+- Start minimized toggle — applies on the next app start
 
 ### 1.8 Auto-Update
 - Check for updates on app startup (configurable)
@@ -141,3 +158,7 @@
 | `update:available`   | Main → Renderer | New update available notification  |
 | `update:downloaded`  | Main → Renderer | Update downloaded, ready to install |
 | `update:install`     | Renderer → Main | Install update and restart         |
+
+`update:install` is registered unconditionally and answers with
+`{ success, error }`. In development, or when auto-update is switched off, it
+returns `success: false` with an explanation rather than failing the call.
