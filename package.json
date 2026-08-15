@@ -1,6 +1,6 @@
 {
   "name": "ytcd",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "YouTube Content Downloader - Download videos and audio from YouTube",
   "main": "src/main.js",
   "author": "YTCD",
