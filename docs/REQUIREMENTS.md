@@ -80,6 +80,9 @@
 - Default video quality
 - Default audio quality
 - Default format (video/audio)
+- Downloader engine: shows the yt-dlp version with an **Update** button that
+  fetches the current release (checksum-verified) into the user data folder,
+  so a YouTube-side breakage does not require a new YTCD release
 - Auto-update toggle
 - Desktop notifications toggle — a Windows toast on download completion or
   failure; clicking it reveals the file in Explorer
@@ -161,6 +164,8 @@
 | `clipboard:read`     | Renderer → Main | Read clipboard text                |
 | `shell:open-path`    | Renderer → Main | Open file/folder in explorer       |
 | `app:get-version`    | Renderer → Main | Get app version                    |
+| `ytdlp:get-version`  | Renderer → Main | Version of the bundled yt-dlp      |
+| `ytdlp:update`       | Renderer → Main | Download the latest yt-dlp         |
 | `update:available`   | Main → Renderer | New update available notification  |
 | `update:downloaded`  | Main → Renderer | Update downloaded, ready to install |
 | `update:install`     | Renderer → Main | Install update and restart         |

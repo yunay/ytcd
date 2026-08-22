@@ -1,6 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
 // YTCD Setup Script — Downloads yt-dlp and ffmpeg binaries
 // Run with: npm run setup
+//
+// Existing binaries are kept. Pass --force to re-download everything, or
+// --only=yt-dlp / --only=ffmpeg to refresh just one. YouTube regularly breaks
+// older yt-dlp builds (HTTP 403), so `npm run update-ytdlp` exists for that.
 // ═══════════════════════════════════════════════════════════════════
 
 const https = require('https');
@@ -10,6 +14,13 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const BIN_DIR = path.join(__dirname, '..', 'bin');
+
+const FORCE = process.argv.includes('--force');
+const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').split('=')[1] || null;
+
+function wanted(name) {
+  return !ONLY || ONLY === name;
+}
 
 function ensureBinDir() {
   if (!fs.existsSync(BIN_DIR)) {
@@ -72,8 +83,12 @@ function extractZip(zipPath, extractTo) {
 async function setupYtdlp() {
   const dest = path.join(BIN_DIR, 'yt-dlp.exe');
   if (fs.existsSync(dest)) {
-    console.log('[yt-dlp] Already exists, skipping.');
-    return;
+    if (!FORCE) {
+      console.log('[yt-dlp] Already exists, skipping. (npm run update-ytdlp to refresh)');
+      return;
+    }
+    console.log('[yt-dlp] Replacing existing binary...');
+    fs.rmSync(dest, { force: true });
   }
 
   console.log('[yt-dlp] Downloading latest release...');
@@ -87,8 +102,12 @@ async function setupYtdlp() {
 async function setupFfmpeg() {
   const dest = path.join(BIN_DIR, 'ffmpeg.exe');
   if (fs.existsSync(dest)) {
-    console.log('[ffmpeg] Already exists, skipping.');
-    return;
+    if (!FORCE) {
+      console.log('[ffmpeg] Already exists, skipping.');
+      return;
+    }
+    console.log('[ffmpeg] Replacing existing binary...');
+    fs.rmSync(dest, { force: true });
   }
 
   console.log('[ffmpeg] Downloading latest build...');
@@ -132,9 +151,9 @@ async function main() {
   ensureBinDir();
 
   try {
-    await setupYtdlp();
+    if (wanted('yt-dlp')) await setupYtdlp();
     console.log('');
-    await setupFfmpeg();
+    if (wanted('ffmpeg')) await setupFfmpeg();
   } catch (err) {
     console.error(`\nSetup error: ${err.message}`);
     process.exit(1);

@@ -125,6 +125,10 @@ Access **Settings** from the sidebar to configure:
   finishes or fails. Clicking the notification reveals the file in Explorer
 - **Start Minimized** — Open the app minimized to the taskbar. Takes effect the
   next time you start YTCD
+- **Downloader Engine** — Shows the version of yt-dlp, the tool that does the
+  actual downloading, with an **Update** button. Use it if downloads start
+  failing with *HTTP Error 403*. The update is kept separately from the app, so
+  it is not lost when YTCD itself updates
 
 ## Keyboard Shortcuts
 
@@ -151,9 +155,20 @@ Run `npm run setup` from the project folder to re-download the required binaries
 ### No audio in downloaded video
 This usually means ffmpeg is missing. Run `npm run setup` to download it.
 
+### "HTTP Error 403: Forbidden"
+The downloader is out of date. YouTube changes its player every few weeks and
+older builds stop working — often for only some videos, which is why it can
+look like one particular song is broken.
+
+Go to **Settings > Downloader Engine** and click **Update**. It fetches the
+current yt-dlp release and the download works again — no need to wait for a new
+version of YTCD.
+
+If you are running from source you can also use `npm run update-ytdlp`.
+
 ### Download fails with error
 - Open **History** and expand **Error details** on the failed entry — it tells
   you exactly what yt-dlp reported
 - Verify the URL is a valid YouTube link
 - Some videos may be private or age-restricted
-- Try updating yt-dlp by deleting `bin/yt-dlp.exe` and running `npm run setup`
+- Refresh the downloader with `npm run update-ytdlp` — a stale yt-dlp is the most common cause

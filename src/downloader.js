@@ -30,6 +30,11 @@ function cleanError(chunk) {
     .join('\n');
 }
 
+// Without this yt-dlp encodes its output in the Windows ANSI codepage and any
+// non-Latin title comes back mangled — the parsed filename then points at a
+// file that does not exist, so "Open file" in history silently does nothing.
+const UTF8_ARGS = ['--encoding', 'utf-8'];
+
 function pickThumbnail(entry) {
   if (!entry) return '';
   if (entry.thumbnail) return entry.thumbnail;
@@ -46,6 +51,21 @@ function createDownloader(getBinPath) {
 
   function getFfmpegPath() {
     return path.dirname(getBinPath('ffmpeg.exe'));
+  }
+
+  // Reports the bundled yt-dlp's own version, so the UI can show what it is
+  // running and confirm an update landed.
+  function getVersion() {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(getYtdlpPath(), ['--version'], { windowsHide: true });
+      let out = '';
+      proc.stdout.on('data', (d) => { out += d.toString(); });
+      proc.on('close', (code) => {
+        if (code === 0 && out.trim()) resolve(out.trim());
+        else reject(new Error('Could not read the yt-dlp version'));
+      });
+      proc.on('error', (err) => reject(new Error(`Failed to run yt-dlp: ${err.message}`)));
+    });
   }
 
   // Runs yt-dlp for its JSON output. Rejects with a cleaned message so the
@@ -90,7 +110,8 @@ function createDownloader(getBinPath) {
   // --yes-playlist is required for watch?v=…&list=… to resolve to the list.
   async function fetchPlaylistInfo(url) {
     const info = await runJson([
-      '--dump-single-json', '--flat-playlist', '--yes-playlist', '--no-warnings', url
+      '--dump-single-json', '--flat-playlist', '--yes-playlist', '--no-warnings',
+      ...UTF8_ARGS, url
     ]);
     const entries = (info.entries || []).filter(Boolean);
     return {
@@ -107,7 +128,8 @@ function createDownloader(getBinPath) {
 
   async function fetchVideoInfo(url) {
     const info = await runJson([
-      '--dump-json', '--no-download', '--no-warnings', '--no-playlist', url
+      '--dump-json', '--no-download', '--no-warnings', '--no-playlist',
+      ...UTF8_ARGS, url
     ]);
 
     // Extract available video resolutions
@@ -201,6 +223,8 @@ function createDownloader(getBinPath) {
     args.push(playlist ? '--yes-playlist' : '--no-playlist');
     // One blocked or private item must not abort the rest of a playlist.
     if (playlist) args.push('--ignore-errors');
+
+    args.push(...UTF8_ARGS);
 
     // Add ffmpeg location
     args.push('--ffmpeg-location', getFfmpegPath());
@@ -386,7 +410,7 @@ function createDownloader(getBinPath) {
     }
   }
 
-  return { getInfo, download, cancel, isPlaylistPageUrl, getPlaylistId };
+  return { getInfo, download, cancel, getVersion, isPlaylistPageUrl, getPlaylistId };
 }
 
 module.exports = { createDownloader, isPlaylistPageUrl, getPlaylistId };

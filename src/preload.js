@@ -42,6 +42,10 @@ contextBridge.exposeInMainWorld('api', {
   // App
   getVersion: () => ipcRenderer.invoke('app:get-version'),
 
+  // yt-dlp maintenance
+  getYtdlpVersion: () => ipcRenderer.invoke('ytdlp:get-version'),
+  updateYtdlp: () => ipcRenderer.invoke('ytdlp:update'),
+
   // Updater
   onUpdateAvailable: (callback) => {
     ipcRenderer.removeAllListeners('update:available');

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { createDownloader } = require('./downloader');
 const { initUpdater, installUpdate } = require('./updater');
+const { updateYtdlp } = require('./ytdlp-updater');
 
 let mainWindow;
 let currentDownloadProcess = null;
@@ -11,11 +12,24 @@ const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 const HISTORY_FILE = path.join(app.getPath('userData'), 'history.json');
 
 // ── Paths to binaries ──────────────────────────────────────────────
-function getBinPath(binary) {
+// A yt-dlp updated from inside the app is kept in userData rather than next
+// to the bundled one: that location is always writable (no admin rights) and
+// it survives an app update, which would otherwise restore the older build.
+const USER_BIN_DIR = path.join(app.getPath('userData'), 'bin');
+
+function getBundledBinPath(binary) {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, 'bin', binary);
   }
   return path.join(__dirname, '..', 'bin', binary);
+}
+
+function getBinPath(binary) {
+  if (binary === 'yt-dlp.exe') {
+    const updated = path.join(USER_BIN_DIR, binary);
+    if (fs.existsSync(updated)) return updated;
+  }
+  return getBundledBinPath(binary);
 }
 
 // ── Settings management ─────────────────────────────────────────────
@@ -245,6 +259,28 @@ ipcMain.handle('download:start', async (_, options) => {
       }
     });
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// ── yt-dlp maintenance ──────────────────────────────────────────────
+ipcMain.handle('ytdlp:get-version', async () => {
+  try {
+    return { success: true, version: await downloader.getVersion() };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('ytdlp:update', async () => {
+  // Replacing the binary mid-download would kill the running process
+  if (currentDownloadProcess) {
+    return { success: false, error: 'A download is in progress. Try again when it finishes.' };
+  }
+  try {
+    await updateYtdlp(path.join(USER_BIN_DIR, 'yt-dlp.exe'));
+    return { success: true, version: await downloader.getVersion() };
   } catch (error) {
     return { success: false, error: error.message };
   }

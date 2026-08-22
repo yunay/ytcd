@@ -43,6 +43,9 @@ npm install
 # Download yt-dlp and ffmpeg binaries
 npm run setup
 
+# Later: refresh yt-dlp only (fixes HTTP 403 from an outdated build)
+npm run update-ytdlp
+
 # Start the app in development mode
 npm start
 ```

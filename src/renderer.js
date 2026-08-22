@@ -49,6 +49,7 @@
     setupDownload();
     setupHistory();
     setupSettingsPage();
+    setupYtdlpUpdate();
     setupKeyboardShortcuts();
     setupUpdateListener();
   });
@@ -634,6 +635,38 @@
       settings.startMinimized = startMinimizedToggle.checked;
       await window.api.setSettings(settings);
     });
+  }
+
+  // ── yt-dlp updater ────────────────────────────────────────────────
+  function setupYtdlpUpdate() {
+    const btn = $('#update-ytdlp-btn');
+    const versionEl = $('#ytdlp-version');
+
+    showYtdlpVersion();
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+      versionEl.textContent = 'downloading...';
+
+      const result = await window.api.updateYtdlp();
+
+      btn.disabled = false;
+      btn.textContent = 'Update';
+
+      if (result.success) {
+        versionEl.textContent = result.version;
+        showToast(`Downloader updated to ${result.version}`, 'success');
+      } else {
+        showToast(result.error || 'Update failed', 'error');
+        showYtdlpVersion();
+      }
+    });
+  }
+
+  async function showYtdlpVersion() {
+    const result = await window.api.getYtdlpVersion();
+    $('#ytdlp-version').textContent = result.success ? result.version : 'unavailable';
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────

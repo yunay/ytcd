@@ -7,13 +7,16 @@ YTCD — Electron desktop app (Windows) for downloading YouTube videos/audio via
 ```bash
 npm install          # deps
 npm run setup        # downloads bin/yt-dlp.exe + bin/ffmpeg.exe (REQUIRED before first run)
+npm run update-ytdlp # force-refresh just yt-dlp (fixes HTTP 403 from a stale build)
 npm start            # electron . (dev)
 npm run build:win    # clean dist/ + electron-builder --win (NSIS installer)
 ```
 
 There is no bundler, transpiler, linter, or test suite. `npm start` runs the source files directly.
 
-`bin/` is gitignored, so a fresh clone will fail at runtime with "Failed to run yt-dlp" until `npm run setup` has been run. `setup.js` skips binaries that already exist — to refresh yt-dlp, delete `bin/yt-dlp.exe` first.
+`bin/` is gitignored, so a fresh clone will fail at runtime with "Failed to run yt-dlp" until `npm run setup` has been run. `setup.js` keeps binaries that already exist; `--force` re-downloads and `--only=yt-dlp` / `--only=ffmpeg` narrows it.
+
+**A stale yt-dlp is the single most likely cause of a download failing.** YouTube changes its player regularly and an older build answers with `HTTP Error 403: Forbidden` (often only on some videos, which makes it look content-specific). `npm run update-ytdlp` is the first thing to try in dev; end users have **Settings → Downloader Engine → Update**, which is why a YouTube-side breakage no longer needs a new YTCD release.
 
 ## Architecture
 
@@ -42,7 +45,9 @@ Channel naming is `domain:action` (`download:start`, `settings:get`). Main→ren
 
 ### Binary resolution
 
-`getBinPath(name)` in main.js returns `process.resourcesPath/bin/...` when packaged and `<repo>/bin/...` in dev. The downloader also prepends the ffmpeg dir to `PATH` on the spawned process and passes `--ffmpeg-location`. Anything that spawns a bundled binary must go through `getBinPath` — never hardcode a path.
+`getBinPath(name)` in main.js resolves `process.resourcesPath/bin/...` when packaged and `<repo>/bin/...` in dev. The downloader also prepends the ffmpeg dir to `PATH` on the spawned process and passes `--ffmpeg-location`. Anything that spawns a bundled binary must go through `getBinPath` — never hardcode a path.
+
+**yt-dlp has one extra layer**: if `<userData>/bin/yt-dlp.exe` exists it wins over the bundled copy. That is where the in-app **Settings → Downloader Engine → Update** button writes ([src/ytdlp-updater.js](src/ytdlp-updater.js)) — userData is writable without admin rights and survives an app update, which would otherwise restore the older bundled build. ffmpeg is never overridden.
 
 ## Conventions
 
@@ -68,6 +73,7 @@ Playlist mode changes four things: the output template (`<playlist title>/<index
 
 ## Gotchas
 
+- **`--encoding utf-8` is mandatory on every yt-dlp call** (`UTF8_ARGS` in [src/downloader.js](src/downloader.js)). Without it yt-dlp encodes stdout in the Windows ANSI codepage and any non-Latin title — Cyrillic, for one — arrives mangled. That corrupts both the info card and the parsed destination filename, so the history entry points at a file that does not exist and "Open file" silently does nothing. `PYTHONIOENCODING` and `PYTHONUTF8` do *not* fix it; the flag does.
 - **Progress parsing is regex over yt-dlp stdout** ([src/downloader.js](src/downloader.js)). A yt-dlp output format change silently breaks the progress bar without failing the download. `--newline` is required for line-wise parsing. The destination regex must keep matching `ExtractAudio`, otherwise audio downloads record the pre-conversion `.webm` name and "Open file" in history breaks.
 - **stderr is not fatal by itself** — the downloader only treats a line containing `ERROR` as one, because yt-dlp prints warnings to stderr too. In playlist mode those errors are collected, not raised, since the run continues.
 - **There is no log file.** The yt-dlp error text is passed through `cleanError()` (strips ANSI, keeps `ERROR` lines) and stored on the history entry as `error`, which the History page renders as a collapsible panel — that entry is the *only* lasting record of a failure, so don't drop the field when touching `history:add` or `createHistoryItem`. The same field carries the skipped-item reasons of a partly downloaded playlist, styled `warning` instead of error.
