@@ -8,107 +8,188 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: var(--bg-base);
   color: var(--text-primary);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  line-height: 1.5;
+  font-family: var(--font-text);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
 
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
 /* ── Scrollbar ───────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-medium);
+  background: var(--stroke-hover);
+  background-clip: padding-box;
+  border: 3px solid transparent;
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background: var(--text-disabled);
+  background-clip: padding-box;
 }
 
-/* ── Selection ───────────────────────────────────────────────────── */
+/* ── Selection & focus ───────────────────────────────────────────── */
 ::selection {
-  background: rgba(0, 212, 255, 0.3);
+  background: var(--accent-tint);
   color: var(--text-primary);
 }
 
-/* ── Focus ring ──────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--accent-start);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
-/* ── Hidden utility ──────────────────────────────────────────────── */
+/* ── Utilities ───────────────────────────────────────────────────── */
 .hidden {
   display: none !important;
 }
 
-/* ── Page containers ─────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Gloss: a soft sheen over the top of a raised surface plus a light top
+   edge. The pseudo-element sits under the content (z-index -1 inside an
+   isolated stacking context), so text contrast is untouched. */
+.gloss {
+  position: relative;
+  isolation: isolate;
+}
+.gloss::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--gloss-sheen);
+  box-shadow: var(--gloss-edge);
+}
+
+.recess {
+  box-shadow: var(--recess);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────── */
+/* Blocks rise in one after another; because a page goes from display:none
+   to visible on navigation, this doubles as the page transition. */
+.enter {
+  animation: enter var(--dur-enter) var(--ease-out) both;
+}
+.d1 { animation-delay: calc(var(--stagger) * 1); }
+.d2 { animation-delay: calc(var(--stagger) * 2); }
+.d3 { animation-delay: calc(var(--stagger) * 3); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── App layout ──────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  height: calc(100vh - var(--titlebar-height));
+}
+
+#main-content {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-layer);
+  border-top: 1px solid var(--stroke-subtle);
+  border-left: 1px solid var(--stroke-subtle);
+  border-top-left-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ── Pages ───────────────────────────────────────────────────────── */
 .page {
   display: none;
-  padding: var(--space-xl);
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  animation: fadeIn var(--transition-base);
+  padding: 28px 32px 24px;
 }
 .page.active {
   display: block;
 }
 
-/* ── Section titles ──────────────────────────────────────────────── */
-.section-title {
+.page-content {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.page-head {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-lg);
-}
-.section-title svg {
-  color: var(--accent-start);
-  flex-shrink: 0;
+  gap: var(--space-4);
 }
 
 .page-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--space-xl);
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: var(--fw-semibold);
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-xl);
-}
-.page-header h2 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-}
-
-/* ── Empty state ─────────────────────────────────────────────────── */
+/* ── Empty state (History) ───────────────────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-3xl) var(--space-xl);
+  gap: var(--space-1);
+  padding: 56px var(--space-6);
   color: var(--text-tertiary);
   text-align: center;
 }
+.empty-state svg {
+  margin-bottom: var(--space-3);
+  opacity: 0.6;
+}
 .empty-state p {
-  font-size: var(--font-size-md);
-  margin-top: var(--space-lg);
-  color: var(--text-secondary);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
 }
 .empty-state span {
-  font-size: var(--font-size-sm);
-  margin-top: var(--space-xs);
+  color: var(--text-secondary);
 }

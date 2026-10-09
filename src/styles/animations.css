@@ -1,19 +1,31 @@
-/* ── Fade In ──────────────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ── Entrance (blocks, page change) ──────────────────────────────── */
+@keyframes enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* ── Slide Down (update banner) ──────────────────────────────────── */
-@keyframes slideDown {
-  from { transform: translateY(-100%); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+/* ── Reveal (expanded details) ───────────────────────────────────── */
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* ── Shimmer (progress bar) ──────────────────────────────────────── */
-@keyframes shimmer {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+/* ── Toast slide-in ──────────────────────────────────────────────── */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Info bar drop-in ────────────────────────────────────────────── */
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Progress sheen (a light band sweeping the fill) ─────────────── */
+@keyframes sheen {
+  from { left: -40%; }
+  to   { left: 100%; }
 }
 
 /* ── Skeleton sweep (loading placeholders) ───────────────────────── */
@@ -22,45 +34,13 @@
   100% { background-position: -200% 0; }
 }
 
-/* ── Pulse (active download indicator) ───────────────────────────── */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.5; }
+/* ── Indeterminate bar (work with no known length) ───────────────── */
+@keyframes indeterminate {
+  0%   { left: -32%; }
+  100% { left: 100%; }
 }
 
-/* ── Spin (loading) ──────────────────────────────────────────────── */
+/* ── Spin (busy indicators) ──────────────────────────────────────── */
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* ── Glow pulse (download button active) ─────────────────────────── */
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px var(--accent-glow); }
-  50%      { box-shadow: 0 0 35px var(--accent-glow-strong); }
-}
-
-/* ── Slide in toast ──────────────────────────────────────────────── */
-@keyframes slideInRight {
-  from { transform: translateX(100px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
-}
-
-/* ── Scale in (for modals/popups) ────────────────────────────────── */
-@keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-/* ── Utility animation classes ───────────────────────────────────── */
-.animate-pulse {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-.animate-glow {
-  animation: glowPulse 2s ease-in-out infinite;
+  to { transform: rotate(360deg); }
 }

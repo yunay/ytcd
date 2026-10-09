@@ -7,18 +7,20 @@ After installing YTCD, launch it from your desktop shortcut or Start Menu. The a
 ## Downloading a Video
 
 1. Copy a YouTube URL from your browser
-2. Click the **Paste** button (clipboard icon) or press **Ctrl+V** — the URL will be pasted and video info will load automatically
-3. Select **Video** in the Format section (selected by default)
-4. Choose your preferred quality from the dropdown (e.g., 1080p Full HD)
-5. Check the **Save to** location — click the folder icon to change it
-6. Click the **Download** button
+2. Click **Paste** or press **Ctrl+V** — the link is pasted and a card with the video's thumbnail, title, channel and length appears under it
+3. In the card, pick **Video** under Format
+4. Choose your preferred quality (e.g., 1080p Full HD)
+5. Check **Save to** at the bottom of the card — click **Change** to pick another folder
+6. Click **Download** or press **Ctrl+D**
 
-The progress bar will show real-time download progress including speed and estimated time.
+Progress takes over the same card: percentage, speed and time left, with **Cancel**
+(or **Esc**) next to them. The top of the window also shows how far along it is,
+so you can follow it while working in another tab of the app.
 
 ## Downloading Audio Only
 
 1. Paste a YouTube URL as described above
-2. Click **Audio** in the Format section
+2. Click **Audio** under Format in the card
 3. Select audio quality (e.g., 320 kbps for highest quality)
 4. Click **Download**
 
@@ -79,14 +81,18 @@ items were saved and how many were skipped.
 
 ## Changing the Save Location
 
-- On the Home page, click the **folder icon** next to the save path
+- On the Home page, click **Change** next to the save path in the card
 - A folder picker dialog will open — navigate to your preferred folder and confirm
 - The selected folder will be remembered for future downloads
 - You can also set a permanent default in **Settings > Default Save Location**
 
 ## Download History
 
-Navigate to the **History** page using the sidebar to see all past downloads:
+Navigate to the **History** page using the bar on the left to see all past downloads.
+Entries are grouped into **Today** and **Earlier**, and the chips at the top —
+**All**, **Video**, **Audio**, **Failed** — narrow the list; each shows how many
+entries it holds.
+
 - **Open file**: Click the external link icon to open the downloaded file. For a
   playlist entry this opens the playlist folder
 - **Open folder**: Click the folder icon to open the containing directory

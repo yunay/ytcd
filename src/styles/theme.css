@@ -1,89 +1,127 @@
 :root {
-  /* ── Background palette ───────────────────── */
-  --bg-primary: #0d0d0f;
-  --bg-secondary: #141418;
-  --bg-tertiary: #1a1a22;
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --bg-card-hover: rgba(255, 255, 255, 0.05);
-  --bg-input: rgba(255, 255, 255, 0.05);
-  --bg-input-focus: rgba(255, 255, 255, 0.08);
-  --bg-sidebar: #101014;
-  /* loading placeholders — need real contrast against --bg-card */
-  --bg-skeleton: #1e1e26;
-  --bg-skeleton-highlight: #2c2c38;
+  /* ── Surfaces ─────────────────────────────── */
+  --bg-base: #1C1C21;            /* titlebar, rail — the window itself */
+  --bg-layer: #232329;           /* content area */
+  --bg-card: #2A2A31;            /* cards, history and settings rows */
+  --bg-card-hover: #303038;
+  --bg-card-inset: #26262D;      /* panels inside cards, empty states */
+  --bg-track: #1F1F25;           /* segmented control track */
+  --bg-flyout: #2F2F37;          /* toasts */
+  --bg-control: #2E2E36;         /* inputs, selects, secondary buttons */
+  --bg-control-raised: #36363F;  /* hover, a button inside a field */
+  --bg-selected: #3A3A44;        /* active segment */
+  --bg-progress-track: #34343C;
+  --bg-skeleton: #2E2E35;
+  --bg-skeleton-hi: #3B3B44;
+  --bg-thumb: #2C3646;          /* thumbnail placeholder */
 
-  /* ── Text palette ─────────────────────────── */
-  --text-primary: #e8e8ed;
-  --text-secondary: #8b8b9e;
-  --text-tertiary: #5a5a6e;
-  --text-inverse: #0d0d0f;
+  /* ── Text ─────────────────────────────────── */
+  --text-primary: #F2F2F5;
+  --text-secondary: #B8B8C2;     /* 7.2:1 on --bg-card */
+  --text-tertiary: #9A9AA6;      /* 5.1:1 on --bg-card */
+  --text-disabled: #6B6B76;
+  --text-on-accent: #FFFFFF;
+  --text-on-light: #0B0B10;     /* selected chip */
+  --text-code: #E4E4EA;         /* error details */
+  --toggle-knob-off: #C8C8D0;
 
-  /* ── Accent / gradient ────────────────────── */
-  --accent-start: #00d4ff;
-  --accent-end: #7b2ff7;
-  --accent-gradient: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-  --accent-gradient-hover: linear-gradient(135deg, #00e0ff, #8b3fff);
-  --accent-glow: rgba(0, 212, 255, 0.25);
-  --accent-glow-strong: rgba(0, 212, 255, 0.4);
+  /* ── Accent ───────────────────────────────── */
+  /* #003E92 is dark: on these surfaces it reaches ~1.5:1, so it is only a
+     FILL under white content. Text, icons, links and focus use the same hue
+     lightened to --accent-text, which clears 4.5:1 on cards. */
+  --accent: #003E92;
+  --accent-end: #1F6FD6;          /* a blue, not a second hue: blue into any red or wine passes through purple */
+  --accent-text: #68A3F3;
+  --accent-text-hover: #94BEF7;
+  --accent-tint: rgba(0, 62, 146, 0.35);        /* icon tiles, badges */
+  --accent-tint-soft: rgba(0, 62, 146, 0.28);   /* info bar */
+  --accent-border: rgba(104, 163, 243, 0.35);
+  --gradient-brand: linear-gradient(90deg, var(--accent), var(--accent-end));    /* progress */
+  --gradient-action: linear-gradient(135deg, var(--accent), var(--accent-end));  /* primary button */
 
-  /* ── Semantic colors ──────────────────────── */
-  --color-success: #00e676;
-  --color-success-bg: rgba(0, 230, 118, 0.1);
-  --color-error: #ff5252;
-  --color-error-bg: rgba(255, 82, 82, 0.1);
-  --color-warning: #ffab40;
-  --color-warning-bg: rgba(255, 171, 64, 0.1);
-  --color-info: #00d4ff;
-  --color-info-bg: rgba(0, 212, 255, 0.1);
+  /* ── App mark ─────────────────────────────── */
+  --logo-a: #1F5FC4;             /* tile, top-left */
+  --logo-b: #003E92;             /* tile, bottom-right */
+  --logo-glyph: #FFFFFF;
 
-  /* ── Borders ──────────────────────────────── */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-medium: rgba(255, 255, 255, 0.1);
-  --border-accent: rgba(0, 212, 255, 0.3);
+  /* ── Status ───────────────────────────────── */
+  --success: #3DD68C;
+  --success-tint: rgba(61, 214, 140, 0.12);
+  --warning: #FFB547;
+  --warning-tint: rgba(255, 181, 71, 0.12);
+  --warning-border: rgba(255, 181, 71, 0.22);
+  --error: #FF6B57;              /* warm red: a lighter red reads as pink */
+  --error-tint: rgba(255, 107, 87, 0.08);
+  --error-tint-soft: rgba(255, 107, 87, 0.06);
+  --error-border: rgba(255, 107, 87, 0.26);
+  --playlist: #7A1F33;           /* bordeaux */
+  --playlist-tint: rgba(122, 31, 51, 0.55);
+  --close-hover: #C42B1C;        /* Windows caption close */
+
+  /* ── Strokes ──────────────────────────────── */
+  --stroke-subtle: rgba(255, 255, 255, 0.06);
+  --stroke-card: rgba(255, 255, 255, 0.07);
+  --stroke-default: rgba(255, 255, 255, 0.09);
+  --stroke-hover: rgba(255, 255, 255, 0.16);
+  --stroke-strong: rgba(255, 255, 255, 0.22);
+  --stroke-window: rgba(255, 255, 255, 0.08);
+
+  /* ── Gloss ────────────────────────────────── */
+  --gloss-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.065) 0%, rgba(255, 255, 255, 0) 46%);
+  --gloss-edge: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --gloss-primary: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 48%, rgba(255, 255, 255, 0) 52%);
+  --gloss-primary-edge: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  --gloss-shine: linear-gradient(105deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 80%);
+  --gloss-media: linear-gradient(140deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 38%, rgba(255, 255, 255, 0) 39%);
+  --gloss-toggle: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 60%);
+  --gloss-bar: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+  --sheen-band: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  --recess: inset 0 1px 2px rgba(0, 0, 0, 0.28);
+
+  /* ── Elevation ────────────────────────────── */
+  --shadow-primary: 0 4px 16px rgba(0, 62, 146, 0.45);
+  --glow-primary: 0 8px 28px rgba(104, 163, 243, 0.30), 0 2px 8px rgba(31, 111, 214, 0.35);
+  --shadow-flyout: 0 8px 24px rgba(0, 0, 0, 0.45);
 
   /* ── Typography ───────────────────────────── */
-  --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-size-xs: 0.7rem;
-  --font-size-sm: 0.8rem;
-  --font-size-base: 0.9rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.15rem;
-  --font-size-xl: 1.4rem;
-  --font-size-2xl: 1.8rem;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+  --font-text: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', Consolas, monospace;
+  --fs-caption: 12px;   --lh-caption: 16px;
+  --fs-body: 14px;      --lh-body: 20px;
+  --fs-body-lg: 15px;
+  --fs-lead: 16px;      --lh-lead: 24px;
+  --fs-subtitle: 20px;  --lh-subtitle: 28px;
+  --fs-title: 28px;     --lh-title: 36px;
+  --fw-regular: 400;
+  --fw-semibold: 600;
+
+  /* ── Radii ────────────────────────────────── */
+  --radius-sm: 4px;     /* nested controls, keycaps, badges */
+  --radius-md: 8px;     /* cards, fields, buttons, window */
+  --radius-full: 999px; /* chips, pills, progress */
 
   /* ── Spacing ──────────────────────────────── */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-  --space-2xl: 32px;
-  --space-3xl: 48px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
 
-  /* ── Radius ───────────────────────────────── */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-full: 9999px;
-
-  /* ── Transitions ──────────────────────────── */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.25s ease;
-  --transition-slow: 0.4s ease;
-
-  /* ── Shadows ──────────────────────────────── */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--accent-glow);
-  --shadow-glow-strong: 0 0 30px var(--accent-glow-strong);
+  /* ── Motion ───────────────────────────────── */
+  --dur-press: 120ms;
+  --dur-hover: 150ms;
+  --dur-glow: 200ms;
+  --dur-enter: 500ms;
+  --dur-shine: 700ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --stagger: 60ms;
 
   /* ── Layout ───────────────────────────────── */
-  --sidebar-width: 200px;
-  --titlebar-height: 36px;
+  --titlebar-height: 32px;
+  --rail-width: 72px;
+  --home-width: 820px;
+  --page-width: 1040px;
 }

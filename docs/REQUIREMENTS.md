@@ -61,13 +61,17 @@
 - Download speed display
 - ETA (estimated time remaining)
 - Current filename display
-- For playlists: current item badge (`3 / 12`); the bar tracks the whole playlist
+- For playlists: current item badge (`3 / 12`) and that item's own percentage; the bar tracks the whole playlist
+- Progress replaces the format and quality controls inside the same card, which shows a read-only summary (format, quality, destination) while it runs
+- The window title area shows "Downloading N%"
 - Cancel button to abort download
 
 ### 1.6 Download History
 - List of all completed and failed downloads
 - Each entry shows: title, date, quality, type, status
-- Playlist entries are marked as such and show the item count
+- Playlist entries are marked as such and show the item count; skipped items show as an amber "N skipped" chip
+- Filter chips — All / Video / Audio / Failed — each with its count
+- Entries grouped into Today and Earlier
 - A failed entry stores the yt-dlp error text and exposes it through a
   collapsible **Error details** panel; a playlist that finished with skipped
   items shows the same panel as **Skipped items**
@@ -88,7 +92,14 @@
   failure; clicking it reveals the file in Explorer
 - Start minimized toggle — applies on the next app start
 
-### 1.8 Auto-Update
+### 1.8 Interface
+- Navigation rail (Home, History, Settings) with the app version at the bottom
+- Frameless window with Windows-style caption buttons; the close button turns red on hover
+- Dark theme; raised surfaces carry a soft gloss, fields and tracks are recessed
+- Motion: blocks rise in one after another when a page opens, hover and press feedback on controls, toasts slide in, the progress bar has a moving sheen
+- All motion is switched off when Windows asks for reduced motion
+
+### 1.9 Auto-Update
 - Check for updates on app startup (configurable)
 - Display update banner when new version is available
 - Download and install update on user confirmation

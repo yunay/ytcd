@@ -12,6 +12,8 @@ npm start            # electron . (dev)
 npm run build:win    # clean dist/ + electron-builder --win (NSIS installer)
 ```
 
+`src/assets/icon.ico` (window, installer) is generated from the app mark by `scripts/make-icon.ps1 -OutIco src/assets/icon.ico -OutPreview <png>`. It draws the same geometry as the inline SVG in the titlebar; change both together. Keep that script ASCII-only, like `find-lock.ps1`.
+
 There is no bundler, transpiler, linter, or test suite. `npm start` runs the source files directly.
 
 `bin/` is gitignored, so a fresh clone will fail at runtime with "Failed to run yt-dlp" until `npm run setup` has been run. `setup.js` keeps binaries that already exist; `--force` re-downloads and `--only=yt-dlp` / `--only=ffmpeg` narrows it.
@@ -51,12 +53,22 @@ Channel naming is `domain:action` (`download:start`, `settings:get`). Main→ren
 
 ## Conventions
 
-- **CSS**: four files loaded in order — `theme.css` (custom properties) → `main.css` (globals/layout) → `components.css` → `animations.css`. Always use the tokens from [src/styles/theme.css](src/styles/theme.css) (`--bg-card`, `--accent-gradient`, `--color-error`, …); don't hardcode colors. Dark theme only.
+- **CSS**: four files loaded in order — `theme.css` (custom properties) → `main.css` (globals, layout, utilities) → `components.css` → `animations.css` (keyframes only). Always use the tokens from [src/styles/theme.css](src/styles/theme.css) (`--bg-card`, `--gradient-action`, `--accent-text`, `--error`, …); don't hardcode colors — that includes SVG fills, which take a class (`.logo-stop-a`, `.logo-glyph`). Dark theme only.
+- **The accent is two tokens.** `--accent` (#003E92) is only ever a FILL under white content — the primary button, toggle tracks, the gradient start. On these dark surfaces it reaches ~1.5:1, so text, icons, links and the focus ring use `--accent-text` (#68A3F3, same hue, 4.5:1+ on cards). Putting `--accent` on text makes it disappear.
+- **Gloss and motion utilities** live in main.css: `.gloss` (sheen + top edge via `::before` at `z-index: -1` in an isolated context, so text contrast is untouched), `.recess` (inset shadow for fields and tracks), `.enter` with `.d1`–`.d3` (staggered entrance; because a page goes from `display:none` to visible, this is also the page transition). Components that already draw their own `::before` gloss — `.btn-secondary`, `.btn-primary`, `.seg-btn.active`, `.chip`, `.nav-item.active` — must not also get `.gloss`. `prefers-reduced-motion` switches every animation and transition off; keep new motion inside that.
 - **CSP** is set via `<meta>` in [src/index.html](src/index.html): `script-src 'self'`, `img-src 'self' https:`. No CDNs, no inline `<script>`, no `eval`. Inline `style` attributes are fine (`style-src` allows `unsafe-inline`). Thumbnails load from YouTube over https.
 - **Icons** are inline SVG (24×24 viewBox, `stroke="currentColor"`, `fill="none"`) — either in the HTML or in template strings in renderer.js. No icon library.
-- **innerHTML** is used to build history rows; any user/video-derived string must go through `escapeHtml`/`escapeAttr` ([src/renderer.js:425](src/renderer.js:425)).
+- **innerHTML** is used to build history rows; any user/video-derived string must go through `escapeHtml`/`escapeAttr` (bottom of the History section in renderer.js).
 - Section comments use the `// ── Name ─────` box style; keep it when adding sections.
-- User feedback goes through `showToast(message, type)` with `success | error | warning | info`.
+- User feedback goes through `showToast(title, type, text?)` with `success | error | warning | info`; `text` is the optional second line.
+
+## UI structure
+
+- **Titlebar**: the app mark and `#titlebar-status`, which reads "Downloading N%" during a download; nothing else.
+- **Rail**: `.nav-item[data-page]` buttons; `showPage()` toggles `.page.active` and sets `#main-content[data-page]`, which the update banner (`#update-banner`, shared by all pages) uses to match the page's column width.
+- **Home is one card that changes state in place** — `showCard('empty' | 'loading' | 'ready' | 'downloading')` in renderer.js is the only thing that shows/hides `#home-empty`, `#media-card`, its controls, the summary, the progress block and the playlist choice. Route new Home states through it rather than toggling `.hidden` piecemeal. While downloading, the link field and Paste are locked (`setInputLocked`) and the card header switches to the playlist when "All N items" was chosen.
+- **History** filters (`.chip[data-filter]`) and Today / Earlier groups are computed in the renderer from `historyCache`; nothing about them is stored. Entries record `skippedCount` for playlists; older entries fall back to counting lines in `error`.
+- **Settings toggles** are real checkboxes (`role="switch"`); the On/Off text comes from CSS (`input:checked ~ .toggle-state`), so the renderer only stores the value. The downloader-engine row shows its busy and failed states through `.is-busy` / `.is-error` on `#setting-ytdlp`.
 
 ## Playlists
 
@@ -84,7 +96,7 @@ Playlist mode changes four things: the output template (`<playlist title>/<index
 - **Windows toasts need `app.setAppUserModelId('com.ytcd.app')`** — it must match `build.appId` in package.json or notifications silently never appear.
 - Settings and history live in `app.getPath('userData')` (`%APPDATA%/YTCD/`), not in the repo — deleting the repo doesn't reset app state. History is capped at 100 entries.
 - **`loadSettings()` merges over `defaultSettings()`**, so a new key is picked up by existing installs instead of arriving `undefined`. It also strips a trailing `p` from `defaultQuality` — older builds stored `'1080p'` while the `<option>` values are bare numbers, and **assigning a `<select>` a value with no matching option silently blanks it** (`selectedIndex` -1). Use `selectIfPresent()` in renderer.js rather than assigning `.value` directly.
-- **An `<img>` with `src=""` renders as a broken image.** `setThumbnail('')` removes the attribute instead. The `.url-info.loading` skeleton uses `--bg-skeleton`/`--bg-skeleton-highlight`; don't build placeholders out of `--bg-input`/`--bg-card-hover`, which are the same value and produce a flat, invisible gradient.
+- **An `<img>` with `src=""` renders as a broken image.** `setThumbnail('')` removes the attribute instead, and a thumbnail that fails to load falls back the same way. The loading skeleton is `.media-card.is-loading`, painted with `--bg-skeleton` → `--bg-skeleton-hi`; placeholders need two tokens with real contrast between them, or the sweep is invisible.
 - **Windows-only** by design: `.exe` binary names, `taskkill`/PowerShell in [scripts/clean-dist.js](scripts/clean-dist.js), NSIS-only build target.
 - `npm run build:win` kills running `electron.exe`/`YTCD.exe` before cleaning `dist/`. If the build fails on a locked `app.asar`, run `npm run find-lock` to see which process is holding it.
 - **[scripts/find-lock.ps1](scripts/find-lock.ps1) must stay ASCII-only** — Windows PowerShell 5.1 reads a BOM-less script as ANSI and any non-ASCII character (an em dash in a comment is enough) breaks parsing.
