@@ -1,4 +1,5 @@
 const { spawn } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 // ── URL helpers ─────────────────────────────────────────────────────
@@ -51,6 +52,15 @@ function createDownloader(getBinPath) {
 
   function getFfmpegPath() {
     return path.dirname(getBinPath('ffmpeg.exe'));
+  }
+
+  // yt-dlp needs a JavaScript runtime to solve YouTube's player challenge.
+  // Without one, many videos fail as "This video is not available" although
+  // they play fine in a browser. Named explicitly rather than left to PATH so
+  // it holds when yt-dlp runs from the userData override.
+  function getRuntimeArgs() {
+    const deno = getBinPath('deno.exe');
+    return fs.existsSync(deno) ? ['--js-runtimes', `deno:${deno}`] : [];
   }
 
   // Reports the bundled yt-dlp's own version, so the UI can show what it is
@@ -111,7 +121,7 @@ function createDownloader(getBinPath) {
   async function fetchPlaylistInfo(url) {
     const info = await runJson([
       '--dump-single-json', '--flat-playlist', '--yes-playlist', '--no-warnings',
-      ...UTF8_ARGS, url
+      ...UTF8_ARGS, ...getRuntimeArgs(), url
     ]);
     const entries = (info.entries || []).filter(Boolean);
     return {
@@ -129,7 +139,7 @@ function createDownloader(getBinPath) {
   async function fetchVideoInfo(url) {
     const info = await runJson([
       '--dump-json', '--no-download', '--no-warnings', '--no-playlist',
-      ...UTF8_ARGS, url
+      ...UTF8_ARGS, ...getRuntimeArgs(), url
     ]);
 
     // Extract available video resolutions
@@ -224,7 +234,7 @@ function createDownloader(getBinPath) {
     // One blocked or private item must not abort the rest of a playlist.
     if (playlist) args.push('--ignore-errors');
 
-    args.push(...UTF8_ARGS);
+    args.push(...UTF8_ARGS, ...getRuntimeArgs());
 
     // Add ffmpeg location
     args.push('--ffmpeg-location', getFfmpegPath());

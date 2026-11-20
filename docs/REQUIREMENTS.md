@@ -120,7 +120,9 @@
 - Desktop shortcut creation
 - Start Menu shortcut creation
 - Clean uninstall via Windows Add/Remove Programs
-- Installed size: under 200MB (including yt-dlp and ffmpeg)
+- Installed size: about 750 MB — roughly 250 MB of Electron runtime, the rest
+  the bundled binaries (ffmpeg and ffprobe ~200 MB each, deno ~100 MB, yt-dlp ~20 MB),
+  each shipped exactly once
 
 ### 2.4 Security
 - Context isolation enabled in Electron
@@ -149,6 +151,8 @@
 │                              │  External Binaries  │  │
 │                              │  yt-dlp.exe         │  │
 │                              │  ffmpeg.exe         │  │
+│                              │  deno.exe (JS for   │  │
+│                              │    yt-dlp)          │  │
 │                              └────────────────────┘  │
 └──────────────────────────────────────────────────────┘
 ```

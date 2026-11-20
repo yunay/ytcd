@@ -40,7 +40,8 @@ cd ytcd
 # Install dependencies
 npm install
 
-# Download yt-dlp and ffmpeg binaries
+# Download the yt-dlp, ffmpeg and deno binaries
+# (re-run after pulling: it only fetches what is missing)
 npm run setup
 
 # Later: refresh yt-dlp only (fixes HTTP 403 from an outdated build)
@@ -78,11 +79,11 @@ ytcd/
 │   └── assets/
 │       └── icon.ico       # App icon
 ├── scripts/
-│   ├── setup.js         # Downloads yt-dlp & ffmpeg
+│   ├── setup.js         # Downloads yt-dlp, ffmpeg & deno
 │   ├── clean-dist.js    # Clears dist/ before a build
 │   ├── make-icon.ps1    # Regenerates src/assets/icon.ico
 │   └── find-lock.ps1    # npm run find-lock — who is locking dist/?
-├── bin/                  # yt-dlp & ffmpeg binaries (gitignored)
+├── bin/                  # yt-dlp, ffmpeg & deno binaries (gitignored)
 ├── docs/
 │   ├── README.md
 │   ├── REQUIREMENTS.md
@@ -99,6 +100,7 @@ ytcd/
 | UI            | Vanilla HTML/CSS/JS            |
 | Downloader    | yt-dlp (bundled binary)        |
 | Audio Convert | ffmpeg (bundled binary)        |
+| JS Runtime    | Deno (bundled, used by yt-dlp) |
 | Packaging     | electron-builder (NSIS)        |
 | Auto-Update   | electron-updater               |
 

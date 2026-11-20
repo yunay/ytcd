@@ -151,7 +151,14 @@ When a new version is available, a banner appears at the top of the app. Click *
 ## Troubleshooting
 
 ### "Failed to run yt-dlp" error
-Run `npm run setup` from the project folder to re-download the required binaries (yt-dlp and ffmpeg).
+Run `npm run setup` from the project folder to re-download the required binaries (yt-dlp, ffmpeg and deno).
+
+### "This video is not available" for a video that plays fine on YouTube
+yt-dlp needs a JavaScript runtime (Deno) to read YouTube's player, and without
+it many videos — sometimes every item of a playlist — are reported as not
+available. YTCD ships Deno, so update to the latest version of YTCD. If you
+are running from source, run `npm run setup` once more: it adds the missing
+`deno.exe` and leaves the other binaries alone.
 
 ### Download stuck at 0%
 - Check your internet connection

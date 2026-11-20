@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-YTCD — Electron desktop app (Windows) for downloading YouTube videos/audio via a bundled `yt-dlp` + `ffmpeg`.
+YTCD — Electron desktop app (Windows) for downloading YouTube videos/audio via a bundled `yt-dlp` + `ffmpeg`, with `deno` as yt-dlp's JavaScript runtime.
 
 ## Commands
 
 ```bash
 npm install          # deps
-npm run setup        # downloads bin/yt-dlp.exe + bin/ffmpeg.exe (REQUIRED before first run)
+npm run setup        # downloads bin/yt-dlp.exe + ffmpeg.exe + deno.exe (REQUIRED before first run)
 npm run update-ytdlp # force-refresh just yt-dlp (fixes HTTP 403 from a stale build)
 npm start            # electron . (dev)
 npm run build:win    # clean dist/ + electron-builder --win (NSIS installer)
@@ -16,7 +16,7 @@ npm run build:win    # clean dist/ + electron-builder --win (NSIS installer)
 
 There is no bundler, transpiler, linter, or test suite. `npm start` runs the source files directly.
 
-`bin/` is gitignored, so a fresh clone will fail at runtime with "Failed to run yt-dlp" until `npm run setup` has been run. `setup.js` keeps binaries that already exist; `--force` re-downloads and `--only=yt-dlp` / `--only=ffmpeg` narrows it.
+`bin/` is gitignored, so a fresh clone will fail at runtime with "Failed to run yt-dlp" until `npm run setup` has been run. `setup.js` keeps binaries that already exist; `--force` re-downloads and `--only=yt-dlp` / `--only=ffmpeg` / `--only=deno` narrows it. Because it skips what is present, re-running `npm run setup` in an older checkout just adds the missing `deno.exe`.
 
 **A stale yt-dlp is the single most likely cause of a download failing.** YouTube changes its player regularly and an older build answers with `HTTP Error 403: Forbidden` (often only on some videos, which makes it look content-specific). `npm run update-ytdlp` is the first thing to try in dev; end users have **Settings → Downloader Engine → Update**, which is why a YouTube-side breakage no longer needs a new YTCD release.
 
@@ -47,9 +47,9 @@ Channel naming is `domain:action` (`download:start`, `settings:get`). Main→ren
 
 ### Binary resolution
 
-`getBinPath(name)` in main.js resolves `process.resourcesPath/bin/...` when packaged and `<repo>/bin/...` in dev. The downloader also prepends the ffmpeg dir to `PATH` on the spawned process and passes `--ffmpeg-location`. Anything that spawns a bundled binary must go through `getBinPath` — never hardcode a path.
+`getBinPath(name)` in main.js resolves `process.resourcesPath/bin/...` when packaged and `<repo>/bin/...` in dev. The downloader also prepends the ffmpeg dir to `PATH` on the spawned process and passes `--ffmpeg-location`, and hands yt-dlp `--js-runtimes deno:<getBinPath('deno.exe')>` (`getRuntimeArgs()`, omitted if the file is missing). Anything that spawns a bundled binary must go through `getBinPath` — never hardcode a path.
 
-**yt-dlp has one extra layer**: if `<userData>/bin/yt-dlp.exe` exists it wins over the bundled copy. That is where the in-app **Settings → Downloader Engine → Update** button writes ([src/ytdlp-updater.js](src/ytdlp-updater.js)) — userData is writable without admin rights and survives an app update, which would otherwise restore the older bundled build. ffmpeg is never overridden.
+**yt-dlp has one extra layer**: if `<userData>/bin/yt-dlp.exe` exists it wins over the bundled copy. That is where the in-app **Settings → Downloader Engine → Update** button writes ([src/ytdlp-updater.js](src/ytdlp-updater.js)) — userData is writable without admin rights and survives an app update, which would otherwise restore the older bundled build. ffmpeg and deno are never overridden — which is also why deno is passed by explicit path: the userData yt-dlp has no deno beside it.
 
 ## Conventions
 
@@ -86,6 +86,7 @@ Playlist mode changes four things: the output template (`<playlist title>/<index
 ## Gotchas
 
 - **`--encoding utf-8` is mandatory on every yt-dlp call** (`UTF8_ARGS` in [src/downloader.js](src/downloader.js)). Without it yt-dlp encodes stdout in the Windows ANSI codepage and any non-Latin title — Cyrillic, for one — arrives mangled. That corrupts both the info card and the parsed destination filename, so the history entry points at a file that does not exist and "Open file" silently does nothing. `PYTHONIOENCODING` and `PYTHONUTF8` do *not* fix it; the flag does.
+- **yt-dlp needs a JavaScript runtime for YouTube** (its "EJS" challenge solver; the official `yt-dlp.exe` bundles the scripts, not the runtime). Without one, many videos — sometimes a whole playlist — fail with `This video is not available` even though they play in a browser, and `--no-warnings` hides the "no JS runtime" hint, so it looks like a content problem. Deno ≥ 2.3 is the supported runtime and the only one enabled by default; Electron's own Node (18 in Electron 28) is too old to stand in (yt-dlp wants Node ≥ 22). The fix is `bin/deno.exe` plus `getRuntimeArgs()`; take the `deno` release asset, not `denort`. To tell it apart from a genuinely unavailable video: `bin/yt-dlp.exe -F <url>` by hand works (yt-dlp also finds a deno beside itself), and adding `--no-js-runtimes` reproduces the failure behind a `No supported JavaScript runtime` warning.
 - **Progress parsing is regex over yt-dlp stdout** ([src/downloader.js](src/downloader.js)). A yt-dlp output format change silently breaks the progress bar without failing the download. `--newline` is required for line-wise parsing. The destination regex must keep matching `ExtractAudio`, otherwise audio downloads record the pre-conversion `.webm` name and "Open file" in history breaks.
 - **stderr is not fatal by itself** — the downloader only treats a line containing `ERROR` as one, because yt-dlp prints warnings to stderr too. In playlist mode those errors are collected, not raised, since the run continues.
 - **There is no log file.** The yt-dlp error text is passed through `cleanError()` (strips ANSI, keeps `ERROR` lines) and stored on the history entry as `error`, which the History page renders as a collapsible panel — that entry is the *only* lasting record of a failure, so don't drop the field when touching `history:add` or `createHistoryItem`. The same field carries the skipped-item reasons of a partly downloaded playlist, styled `warning` instead of error.
@@ -98,6 +99,7 @@ Playlist mode changes four things: the output template (`<playlist title>/<index
 - **`loadSettings()` merges over `defaultSettings()`**, so a new key is picked up by existing installs instead of arriving `undefined`. It also strips a trailing `p` from `defaultQuality` — older builds stored `'1080p'` while the `<option>` values are bare numbers, and **assigning a `<select>` a value with no matching option silently blanks it** (`selectedIndex` -1). Use `selectIfPresent()` in renderer.js rather than assigning `.value` directly.
 - **An `<img>` with `src=""` renders as a broken image.** `setThumbnail('')` removes the attribute instead, and a thumbnail that fails to load falls back the same way. The loading skeleton is `.media-card.is-loading`, painted with `--bg-skeleton` → `--bg-skeleton-hi`; placeholders need two tokens with real contrast between them, or the sweep is invisible.
 - **Windows-only** by design: `.exe` binary names, `taskkill`/PowerShell in [scripts/clean-dist.js](scripts/clean-dist.js), NSIS-only build target.
+- **`bin/` reaches the package only through `extraResources`** (→ `resources/bin`, where `getBinPath` looks). `build.files` in package.json keeps it — and `docs/`, `scripts/`, `.claude/`, `.vscode/`, `CLAUDE.md` — out of `app.asar`; without that list every binary shipped twice (~400 MB of dead weight) along with local dev settings. A new top-level folder that is not needed at runtime belongs on that list. Check with `@electron/asar`'s `listPackage()` on `dist/win-unpacked/resources/app.asar`.
 - `npm run build:win` kills running `electron.exe`/`YTCD.exe` before cleaning `dist/`. If the build fails on a locked `app.asar`, run `npm run find-lock` to see which process is holding it.
 - **[scripts/find-lock.ps1](scripts/find-lock.ps1) must stay ASCII-only** — Windows PowerShell 5.1 reads a BOM-less script as ANSI and any non-ASCII character (an em dash in a comment is enough) breaks parsing.
 
